@@ -2,36 +2,51 @@
 # Check and select device
 # ----------------------------------
 AC_DEFUN([ACX_USABLE_DEVICE],[
-        if test x${with_infiniband} != xno -a x${with_ethernet} != xno; then
+        if test x${with_infiniband} != xno -a x${with_ethernet} != xno -a x${with_bxi} != xno; then
            TITLE([Checking for device(s):])
-           AC_MSG_ERROR([Concurrently Infiniband and Ethernet is not supported])
-        elif test x${with_infiniband} != xno -a x${with_ethernet} = xno; then
+           AC_MSG_ERROR([Concurrently Infiniband, PORTALS and Ethernet is not supported])
+        elif test x${with_infiniband} != xno -a x${with_ethernet} = xno -a x${with_bxi} = xno; then
            TITLE([Checking for Infiniband])
            ACX_INFINIBAND
            if test x${HAVE_INFINIBAND} = x0; then
               AC_MSG_ERROR([Infiniband requested, but can not use it])
            fi
-        elif test x${with_infiniband} = xno -a x${with_ethernet} != xno; then
+        elif test x${with_infiniband} = xno -a x${with_ethernet} != xno -a x${with_bxi} = xno; then
            TITLE([Checking for Ethernet])
            ACX_ETHERNET
            if test x${HAVE_TCP} = x0; then
               AC_MSG_ERROR([Ethernet requested, but can not use it])
            fi
+	elif test x${with_infiniband} = xno -a x${with_ethernet} = xno -a x${with_bxi} != xno; then
+	   TITLE([Checking for PORTALS])
+	   ACX_PORTALS
+	   if test x${HAVE_PORTALS} = x0; then
+	      AC_MSG_ERROR([PORTALS requested, but can not use it])
+	   fi
         else
-	   TITLE([Infiniband or Ethernet is required, checking for Infiniband...])
+	   TITLE([Infiniband, PORTALS or Ethernet is required, checking for Infiniband...])
            with_infiniband=yes
            ACX_INFINIBAND
            if test x${HAVE_INFINIBAND} = x0; then
 	      AC_MSG_NOTICE([Infiniband can not be used])
-              TITLE([Checking for Ethernet])
-              ACX_ETHERNET
-              if test x${HAVE_TCP} = x0; then
-              	 AC_MSG_ERROR([Neither Infiniband nor Ethernet are usable])
+	      TITLE([Checking for PORTALS])
+	      ACX_PORTALS
+	      if test x${HAVE_PORTALS} = x0; then
+		AC_MSG_NOTICE([PORTALS can not be used])
+              	TITLE([Checking for Ethernet])
+              	ACX_ETHERNET
+              	if test x${HAVE_TCP} = x0; then
+              		 AC_MSG_ERROR([Neither Infiniband nor Ethernet are usable])
+		fi
               fi
            fi
         fi
 
 	# COPY DEFAULT FILES FOR TESTING
+	AM_CONDITIONAL([WITH_PORTALS],[test x${HAVE_PORTALS} = x1])
+	if [test x${HAVE_PORTALS} = x1]; then
+	   options="$options Portals"
+	fi
         AM_CONDITIONAL([WITH_ETHERNET], test x${HAVE_TCP} = x1)
         if [test x${HAVE_TCP} = x1]; then
            options="$options Ethernet"
@@ -182,4 +197,94 @@ AS_IF(test `./conftest_ib.exe; echo $?` -gt 0,
 # ----------------------------------
 AC_DEFUN([ACX_ETHERNET],[
 	AC_CHECK_HEADER(netinet/tcp.h,[HAVE_TCP=1],[HAVE_TCP=0])
+	])
+
+################################################
+# Check and set PORTALS path
+# ----------------------------------
+AC_DEFUN([ACX_PORTALS],[
+	if test "x$with_portals" != xno; then
+   	   if test "x$with_portals" != xyes; then
+	      # User specifies path(s)
+	      ac_path_portals=$with_portals
+      	      ac_inc_portals=$ac_path_portals/include/
+	      AC_CHECK_FILE($ac_inc_portals/portals4.h,
+	      	      [HAVE_PORTALS_HEADER=1],[HAVE_PORTALS_HEADER=0])
+	      AC_CHECK_FILE($ac_inc_portals/portals4_bxiext.h,
+			    [HAVE_PORTALS_BXI_EXT=1],[HAVE_PORTALS_BXI_EXT=0])
+	      AC_CHECK_FILE($ac_inc_portals/portals4_services.h,
+			    [HAVE_PORTALS_SERVICES=1],[HAVE_PORTALS_SERVICES=0])
+	      for portalslib in libportals.so libportals.a; do
+	          for portalslib_path in lib lib64; do
+	      	      ac_lib_portals=$ac_path_portals/$portalslib_path
+		      AC_CHECK_FILE($ac_lib_portals/$portalslib,[HAVE_PORTALS_LIB=1],[HAVE_PORTALS_LIB=0])
+		      if test ${HAVE_PORTALS_LIB} = 1; then
+	      	          break
+		      fi
+		  done
+	          if test ${HAVE_PORTALS_LIB} = 1; then
+	             break
+	  	  fi
+  	      done
+   	   else
+	      # Try to determine include path(s)
+	      inc_paths=`cpp -v /dev/null >& cppt`
+	      inc_paths=`sed -n '/^#include </,/^End/p' cppt | sed '1d;$d'`
+	      rm -f cppt
+	      for portalsinc in $inc_paths; do
+	      	  ac_inc_portals=$portalsinc
+		  AC_CHECK_FILE($ac_inc_portals/portals4.h,
+		  	      	  [HAVE_PORTALS_HEADER=1],[HAVE_PORTALS_HEADER=0])
+	      	  if [test ${HAVE_PORTALS_HEADER} = 1 -a x$portals_bxi_ext != xno]; then
+		     AC_CHECK_FILE($ac_inc_portals/portals4_bxiext.h,
+				   [HAVE_PORTALS_BXI_EXT=1],[HAVE_PORTALS_BXI_EXT=0])
+	      	     break
+	      	  fi
+		  if [test ${HAVE_PORTALS_HEADER} = 1 -a x$portals_services != xno]; then
+		     AC_CHECK_FILE($ac_inc_portals/portals4_services.h,[HAVE_PORTALS_SERVICES=1],
+		   		   [HAVE_PORTALS_SERVICES=0])
+		  fi
+	      done
+	      # Try to determine library path(s)
+	      for portalsinc in $inc_paths; do
+	      	  ac_path_portals=${portalsinc%/include*}
+	          for portalslib in libportals.so libportals.a; do
+	              for portalslib_path in lib lib64; do
+	      	      	  ac_lib_portals=$ac_path_portals/$portalslib_path
+	          	  AC_CHECK_FILE($ac_lib_portals/$portalslib,[HAVE_PORTALS_LIB=1],[HAVE_PORTALS_LIB=0])
+	                  if test ${HAVE_PORTALS_LIB} = 1; then
+	      	      	     break
+	                  fi
+	              done
+	              if test ${HAVE_PORTALS_LIB} = 1; then
+	              	 break
+	              fi
+  	          done
+	          if test ${HAVE_PORTALS_LIB} = 1; then
+	             break
+	          fi
+	      done
+	      # If the above lib search fails, use autotools
+	      #if test ${HAVE_PORTALS_LIB} != 1; then
+ 	      #   ac_lib_portals=
+	      #	 AC_CHECK_LIB([portals],[PtlInit],[HAVE_PORTALS_LIB=1],[HAVE_PORTALS_LIB=0])
+  	      #fi
+   	   fi
+	fi
+	if test ${HAVE_PORTALS_HEADER} = 1 -a ${HAVE_PORTALS_LIB} = 1; then
+		HAVE_PORTALS=1
+	else
+		HAVE_PORTALS=0
+	fi
+#	if test ${HAVE_INF_HEADER} = 1 -a ${HAVE_INF_LIB} = 1; then
+#	   ACX_IB_DEVI($ac_inc_infiniband,$ac_lib_infiniband,[HAVE_INFINIBAND=1],[HAVE_INFINIBAND=0])
+#	   AC_SUBST(ac_inc_infiniband,[-I$ac_inc_infiniband])
+#	   if test ! -z $ac_lib_infiniband; then
+#	      AC_SUBST(ac_lib_infiniband,["-L$ac_lib_infiniband -libverbs"])
+#	   else
+#	      AC_SUBST(ac_lib_infiniband,[-libverbs])
+#	   fi
+#	else
+#	   HAVE_INFINIBAND=0
+#	fi
 	])
