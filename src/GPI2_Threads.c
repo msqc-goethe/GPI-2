@@ -16,6 +16,8 @@ You should have received a copy of the GNU General Public License
 along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _GNU_SOURCE  // Important for CPU_SETSIZE etc. 
+
 #include <pthread.h>
 #include <sched.h>
 #include <unistd.h>
@@ -25,6 +27,7 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include "GASPI_Ext.h"
 
 #define GASPI_MAX_THREADS (1024)
+
 
 static int __gaspiThreadsGlobalIDCnt = -1;
 static int __gaspiThreadsActivated = 0;
