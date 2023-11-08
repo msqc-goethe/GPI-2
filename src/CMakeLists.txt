@@ -4,6 +4,7 @@ add_subdirectory(devices)
 
 add_library(
   ${PROJECT_NAME}
+  SHARED
   "GPI2.c"
   "GPI2_ATOMIC.c"
   "GPI2_CM.c"

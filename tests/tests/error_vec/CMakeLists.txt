@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 set(GPI2_LIB "${CMAKE_BINARY_DIR}/src/libGPI-2.so")
-set(APPS "proc_init_timeout" "cmd_line_args" "kill_procs" "print_to" "null_ptrs" "numa_check" "strong_sym" "local_rank" "initialized" "hello_world")
+set(APPS "barrier_recover" "barrier_recover_ping" "get_error_vec" "one_dies")
 
 foreach(APP IN LISTS APPS)
 	if(APP STREQUAL "")
