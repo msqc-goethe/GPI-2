@@ -199,7 +199,7 @@ fi
 
 validate_machinefile $MFILE
 
-if [ $NTASKS -gt $SLURM_NPROCS ]; then
+if [[ "$NTASKS" -gt "$SLURM_NPROCS" ]]; then
     print_error_exit "Number of hosts in machinefile (${NTASKS}) exceeds the job's allocation number (${SLURM_NPROCS})."
 fi
 
@@ -208,11 +208,11 @@ if [ -z "$MASTER_PRG" ]; then
     MASTER_PRG=$PRG
 fi
 
-if [ 0 -eq "$SLURM_PROCID" ]; then
+if [[ 0 -eq "$SLURM_PROCID" ]]; then
     NNODES=`wc -l < $UNIQ_MFILE`
 fi
 
-if [ $(($NTASKS / $NNODES)) -gt $MAX_NUMA_NODES ]; then
+if [[ "$(($NTASKS / $NNODES))" -gt "$MAX_NUMA_NODES" ]]; then
     print_error_exit "NUMA option: incorrect machinefile (-m $ORIG_MFILE) (max procs per node: $MAX_NUMA_NODES)"
 fi
 
