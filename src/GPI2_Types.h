@@ -25,6 +25,10 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include "GPI2_CM.h"
 #include "GASPI_Ext.h"
 
+#ifdef GPI2_DEVICE_BXI
+#include <portals4.h>
+#endif
+
 #define ALIGN64  __attribute__ ((aligned (64)))
 
 /* Macro-ed constants */
@@ -65,6 +69,11 @@ typedef struct
 
 #ifdef GPI2_DEVICE_IB
   unsigned int rkey[2];
+#elif GPI2_DEVICE_BXI
+  ptl_handle_md_t data_md_handle;
+  ptl_handle_md_t notify_spc_md_handle;
+  ptl_handle_le_t data_le_handle;
+  ptl_handle_le_t notify_spc_le_handle;
 #endif
 
   unsigned long size;
