@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.5)
 
-SET(GPI2_LIB "${CMAKE_BINARY_DIR}/src/libGPI-2.so")
+set(GPI2_LIB "${CMAKE_BINARY_DIR}/src/libGPI-2.so")
 
 add_library(test_utils "test_utils.c")
 target_link_libraries(test_utils PUBLIC "${GPI2_LIB}")
-target_include_directories(test_utils PUBLIC "./" "${CMAKE_SOURCE_DIR}/src/include")
+target_include_directories(
+  test_utils PUBLIC "./" "${CMAKE_SOURCE_DIR}/src/include"
+)
 
 add_subdirectory(atomic)
 add_subdirectory(cm)
