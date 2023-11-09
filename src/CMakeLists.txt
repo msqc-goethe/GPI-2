@@ -3,8 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 add_subdirectory(devices)
 
 add_library(
-  ${PROJECT_NAME}
-  SHARED
+  ${PROJECT_NAME} SHARED
   "GPI2.c"
   "GPI2_ATOMIC.c"
   "GPI2_CM.c"
@@ -33,6 +32,7 @@ target_link_libraries(
 target_compile_definitions(
   ${PROJECT_NAME}
   PRIVATE
+    "$<$<CONFIG:Debug>:DEBUG>"
     "$<$<BOOL:${WITH_IB}>:GPI2_DEVICE_IB>"
     "$<$<BOOL:${WITH_BXI}>:GPI2_DEVICE_BXI>"
     "$<$<AND:$<NOT:$<BOOL:${WITH_IB}>>,$<NOT:$<BOOL:${WITH_BXI}>>>:GPI2_DEVICE_TCP>"
