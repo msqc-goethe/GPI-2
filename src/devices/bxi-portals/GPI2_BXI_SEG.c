@@ -77,6 +77,20 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 	seg->notify_spc_md_handle = PTL_INVALID_HANDLE;
 	seg->notify_spc_le_handle = PTL_INVALID_HANDLE;
 
+	PtlGetUid(portals4_dev_ctx->ni_handle,&uid);
+
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlGetUid failed with %d", ret);
+		_pgaspi_dev_unregister_mem(seg);
+		return -1;
+	}
+
+	if(seg->data.buf == NULL){
+	PORTALS4_DEBUG_PRINT_MSG("Allocating Data Segment at with size %d",seg->size);
+
+	memset(&md,0,sizeof(ptl_md_t));
+	memset(&le,0,sizeof(ptl_le_t));
+
 	md.start = seg->data.buf;
 	md.length = seg->size;
 	md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_SEND |
@@ -96,6 +110,7 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 	le.length = seg->size;
 	le.options = PTL_LE_OP_PUT | PTL_LE_OP_GET | PTL_LE_EVENT_SUCCESS_DISABLE |
 	             PTL_LE_EVENT_LINK_DISABLE;
+	le.uid = uid;
 
 	ret = PtlLEAppend(portals4_dev_ctx->ni_handle,
 	                  portals4_dev_ctx->data_pt_index,
@@ -103,14 +118,20 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 	                  PTL_PRIORITY_LIST,
 	                  NULL,
 	                  &seg->data_le_handle);
-
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlLEAppend failed with %d", ret);
 		_pgaspi_dev_unregister_mem(seg);
 		return -1;
 	}
-
+	}
 	if (seg->notif_spc.buf != NULL) {
+		PORTALS4_DEBUG_PRINT_MSG("Allocating Notify Segment at with size %d",seg->size);
+
+		memset(&md,0,sizeof(ptl_md_t));
+		memset(&le,0,sizeof(ptl_le_t));
+		
+		PORTALS4_DEBUG_PRINT_MSG("UID is %d",uid);
+
 		md.start = seg->notif_spc.buf;
 		md.length = seg->notif_spc_size;
 		md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_SEND |
@@ -131,7 +152,7 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 		le.length = seg->notif_spc_size;
 		le.options = PTL_LE_OP_PUT | PTL_LE_OP_GET |
 		             PTL_LE_EVENT_SUCCESS_DISABLE | PTL_LE_EVENT_LINK_DISABLE;
-
+		le.uid = uid;
 		ret = PtlLEAppend(portals4_dev_ctx->ni_handle,
 		                  portals4_dev_ctx->notify_spc_pt_index,
 		                  &le,
@@ -145,6 +166,7 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 			return -1;
 		}
 	}
+	PORTALS4_DEBUG_PRINT_MSG("Leaving pgaspi_dev_register_mem");
 	return 0;
 }
 
