@@ -39,13 +39,15 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 
 	gctx->device = calloc(1, sizeof(gctx->device));
 	if (gctx->device == NULL) {
-		return GASPI_ERROR;
+		GASPI_DEBUG_PRINT_ERROR("Device allocation failed");
+		return -1;
 	}
 
 	gctx->device->ctx = calloc(1, sizeof(gaspi_portals4_ctx));
 	if (gctx->device->ctx == NULL) {
+		GASPI_DEBUG_PRINT_ERROR("Device ctx allocation failed");
 		free(gctx->device);
-		return GASPI_ERROR;
+		return -1;
 	}
 
 	gaspi_portals4_ctx* const portals4_dev_ctx =
@@ -59,7 +61,7 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		GASPI_DEBUG_PRINT_ERROR("Failed to initialize Portls library!");
 		free(gctx->device->ctx);
 		free(gctx->device);
-		return GASPI_ERROR;
+		return -1;
 	}
 
 	// prelim defaults
@@ -88,7 +90,7 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	                &portals4_dev_ctx->ni_handle);
 
 	if (ret != PTL_OK) {
-		GASPI_DEBUG_PRINT_ERROR("Failed to initialize Network Interface!");
+		GASPI_DEBUG_PRINT_ERROR("Failed to initialize Network Interface! Code %d on interface %d",ret,iface);
 		goto err_d;
 	}
 
@@ -147,7 +149,7 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
 		goto err_pt2;
 	}
-
+	PORTALS4_DEBUG_PRINT_MSG("Data PT index is %d",portals4_dev_ctx->data_pt_index);
 	ret = PtlPTAlloc(portals4_dev_ctx->ni_handle,
 	                 0,
 	                 portals4_dev_ctx->notify_spc_eq_handle,
@@ -158,6 +160,8 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
 		goto err_pt1;
 	}
+
+	PORTALS4_DEBUG_PRINT_MSG("Notify SPC PT index is %d",portals4_dev_ctx->notify_spc_pt_index);
 
 	ret = PtlCTAlloc(portals4_dev_ctx->ni_handle, &portals4_dev_ctx->data_ct_handle);
 
@@ -172,7 +176,6 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
 		goto err_ct1;
 	}
-
 	return 0;
 
 err_ct1:
@@ -196,7 +199,7 @@ err_d:
 	free(gctx->device->ctx);
 	free(gctx->device);
 	PtlFini();
-	return GASPI_ERROR;
+	return -1;
 }
 
 int pgaspi_dev_comm_queue_delete(
