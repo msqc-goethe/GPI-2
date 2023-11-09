@@ -17,11 +17,11 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <errno.h>
+#include <limits.h>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/timeb.h>
 #include <unistd.h>
-#include <limits.h>
 
 #include <math.h>
 
@@ -90,7 +90,10 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	                &portals4_dev_ctx->ni_handle);
 
 	if (ret != PTL_OK) {
-		GASPI_DEBUG_PRINT_ERROR("Failed to initialize Network Interface! Code %d on interface %d",ret,iface);
+		GASPI_DEBUG_PRINT_ERROR(
+		    "Failed to initialize Network Interface! Code %d on interface %d",
+		    ret,
+		    iface);
 		goto err_d;
 	}
 
@@ -149,7 +152,8 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
 		goto err_pt2;
 	}
-	PORTALS4_DEBUG_PRINT_MSG("Data PT index is %d",portals4_dev_ctx->data_pt_index);
+	PORTALS4_DEBUG_PRINT_MSG("Data PT index is %d",
+	                         portals4_dev_ctx->data_pt_index);
 	ret = PtlPTAlloc(portals4_dev_ctx->ni_handle,
 	                 0,
 	                 portals4_dev_ctx->notify_spc_eq_handle,
@@ -161,16 +165,19 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		goto err_pt1;
 	}
 
-	PORTALS4_DEBUG_PRINT_MSG("Notify SPC PT index is %d",portals4_dev_ctx->notify_spc_pt_index);
+	PORTALS4_DEBUG_PRINT_MSG("Notify SPC PT index is %d",
+	                         portals4_dev_ctx->notify_spc_pt_index);
 
-	ret = PtlCTAlloc(portals4_dev_ctx->ni_handle, &portals4_dev_ctx->data_ct_handle);
+	ret = PtlCTAlloc(portals4_dev_ctx->ni_handle,
+	                 &portals4_dev_ctx->data_ct_handle);
 
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
 		goto err_ct2;
 	}
 
-	ret = PtlCTAlloc(portals4_dev_ctx->ni_handle, &portals4_dev_ctx->notify_spc_ct_handle);
+	ret = PtlCTAlloc(portals4_dev_ctx->ni_handle,
+	                 &portals4_dev_ctx->notify_spc_ct_handle);
 
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
@@ -183,9 +190,10 @@ err_ct1:
 err_ct2:
 	PtlCTFree(portals4_dev_ctx->data_ct_handle);
 err_pt1:
-	PtlPTFree(portals4_dev_ctx->ni_handle,portals4_dev_ctx->notify_spc_pt_index);
+	PtlPTFree(portals4_dev_ctx->ni_handle,
+	          portals4_dev_ctx->notify_spc_pt_index);
 err_pt2:
-	PtlPTFree(portals4_dev_ctx->ni_handle,portals4_dev_ctx->data_pt_index);
+	PtlPTFree(portals4_dev_ctx->ni_handle, portals4_dev_ctx->data_pt_index);
 err_eq1:
 	PtlEQFree(portals4_dev_ctx->notify_spc_eq_handle);
 err_eq2:
@@ -246,15 +254,17 @@ int pgaspi_dev_comm_queue_connect(
 	return 0;
 }
 
-int pgaspi_dev_connect_context(gaspi_context_t const* const GASPI_UNUSED(gctx), const int GASPI_UNUSED(i)) {
+int pgaspi_dev_connect_context(gaspi_context_t const* const GASPI_UNUSED(gctx),
+                               const int GASPI_UNUSED(i)) {
 	return 0;
 }
 
 int pgaspi_dev_cleanup_core(gaspi_context_t* const gctx) {
 	gaspi_portals4_ctx* const portals4_dev_ctx =
 	    (gaspi_portals4_ctx*) gctx->device->ctx;
-	PtlPTFree(portals4_dev_ctx->ni_handle,portals4_dev_ctx->notify_spc_pt_index);
-	PtlPTFree(portals4_dev_ctx->ni_handle,portals4_dev_ctx->data_pt_index);
+	PtlPTFree(portals4_dev_ctx->ni_handle,
+	          portals4_dev_ctx->notify_spc_pt_index);
+	PtlPTFree(portals4_dev_ctx->ni_handle, portals4_dev_ctx->data_pt_index);
 	PtlEQFree(portals4_dev_ctx->notify_spc_eq_handle);
 	PtlEQFree(portals4_dev_ctx->data_eq_handle);
 	PtlNIFini(portals4_dev_ctx->ni_handle);
