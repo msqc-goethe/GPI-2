@@ -322,7 +322,6 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 			return -1;
 		}
 	}
-	PORTALS4_DEBUG_PRINT_MSG("Leaving pgaspi_dev_register_mem");
 	return 0;
 }
 
