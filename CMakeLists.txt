@@ -10,6 +10,6 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 add_subdirectory(src)
 
 if(BUILD_TESTS)
-	enable_testing()
-	add_subdirectory(tests)
+  enable_testing()
+  add_subdirectory(tests)
 endif()

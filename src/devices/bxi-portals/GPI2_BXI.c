@@ -74,7 +74,7 @@ int _pgaspi_dev_cleanup_core(gaspi_portals4_ctx* const dev, int tnc) {
 			return -4;
 		}
 	}
-	
+
 	if (!PtlHandleIsEqual(dev->ni_handle, PTL_INVALID_HANDLE)) {
 		ret = PtlNIFini(dev->ni_handle);
 		if (PTL_OK != ret) {
@@ -163,10 +163,12 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		    iface);
 		goto err_d;
 	}
-	portals4_dev_ctx->max_ptes = ni_req_limits.max_pt_index;
-	portals4_dev_ctx->pte_states = (int8_t*)calloc(ni_req_limits.max_pt_index,sizeof(int8_t));
 
-	if(portals4_dev_ctx->pte_states == NULL){
+	portals4_dev_ctx->max_ptes = ni_req_limits.max_pt_index;
+	portals4_dev_ctx->pte_states =
+	    (int8_t*) calloc(ni_req_limits.max_pt_index, sizeof(int8_t));
+
+	if (portals4_dev_ctx->pte_states == NULL) {
 		GASPI_DEBUG_PRINT_ERROR("Failed to allocate memory!");
 		goto err_d;
 	}
@@ -204,7 +206,7 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlEQAlloc failed with %d", ret);
-		_pgaspi_dev_cleanup_core(portals4_dev_ctx,gctx->tnc);
+		_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
 		goto err_r;
 	}
 
@@ -214,7 +216,7 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlEQAlloc failed with %d", ret);
-		_pgaspi_dev_cleanup_core(portals4_dev_ctx,gctx->tnc);
+		_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
 		goto err_r;
 	}
 
@@ -224,7 +226,7 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlEQAlloc failed with %d", ret);
-		_pgaspi_dev_cleanup_core(portals4_dev_ctx,gctx->tnc);
+		_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
 		goto err_r;
 	}
 
@@ -233,7 +235,7 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
-		_pgaspi_dev_cleanup_core(portals4_dev_ctx,gctx->tnc);
+		_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
 		goto err_r;
 	}
 
@@ -243,11 +245,10 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 
 		if (PTL_OK != ret) {
 			GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
-			_pgaspi_dev_cleanup_core(portals4_dev_ctx,gctx->tnc);
+			_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
 			goto err_r;
 		}
 	}
-
 	return 0;
 
 err_r:
@@ -315,8 +316,8 @@ int pgaspi_dev_cleanup_core(gaspi_context_t* const gctx) {
 	gaspi_portals4_ctx* const portals4_dev_ctx =
 	    (gaspi_portals4_ctx*) gctx->device->ctx;
 
-	ret = _pgaspi_dev_cleanup_core(portals4_dev_ctx,gctx->tnc);
-	if (!ret){
+	ret = _pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
+	if (!ret) {
 		return ret;
 	}
 

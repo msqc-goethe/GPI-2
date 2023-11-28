@@ -26,6 +26,7 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include "GPI2.h"
 #include "GPI2_BXI.h"
 
+<<<<<<< HEAD
 int ptl_le_factory(gaspi_portals4_ctx* dev,
                    void* start,
                    const ptl_size_t length,
@@ -156,6 +157,7 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 	    (gaspi_portals4_ctx*) gctx->device->ctx;
 	portals4_mr* mr_ptr = NULL;
 
+<<<<<<< HEAD
 	le_options = PTL_LE_OP_PUT | PTL_LE_OP_GET | PTL_LE_EVENT_SUCCESS_DISABLE |
 	             PTL_LE_EVENT_LINK_DISABLE;
 
@@ -322,6 +324,7 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 			return -1;
 		}
 	}
+	PORTALS4_DEBUG_PRINT_MSG("Leaving pgaspi_dev_register_mem");
 	return 0;
 }
 
