@@ -24,9 +24,8 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 
 #include "GPI2_Dev.h"
 
-#define GPI2_PORTALS4_DATA_PT (0)
-#define GPI2_PORTALS4_NOTIFY_SPC_PT (1)
-#define GPI2_PORTALS4_EVENT_SLOTS (1024)
+#define PORTALS4_EVENT_SLOTS (1024)
+#define PORTALS4_ACK_TYPE PTL_CT_ACK_REQ
 
 #ifdef DEBUG
 #define PORTALS4_DEBUG_PRINT_MSG(msg, ...)       \
@@ -39,24 +38,36 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 	}
 #endif
 
+enum pt_states {PT_FREE = 0, PT_ALLOCATED = 1};
+
+typedef struct {
+	ptl_handle_md_t group_md;
+	ptl_handle_md_t passive_md;
+	ptl_handle_md_t comm_md[GASPI_MAX_QP];
+	ptl_handle_le_t le_handle;
+	ptl_handle_le_t passive_le_handle;
+	ptl_handle_ct_t pt_ct_handle;
+	ptl_pt_index_t  pt_index;
+	ptl_pt_index_t  passive_pt_index;
+} portals4_mr;
+
 struct portals4_ctx_info {
 	ptl_process_t phys_address;
 	ptl_process_t logical_address;
-	int nGroup;
-	int nP;
-	int nC;
 };
 
 typedef struct {
 	ptl_handle_ni_t ni_handle;
-	ptl_handle_eq_t data_eq_handle;
-	ptl_handle_eq_t notify_spc_eq_handle;
-	ptl_handle_ct_t data_ct_handle;
-	ptl_handle_ct_t notify_spc_ct_handle;
-	ptl_pt_index_t data_pt_index;
-	ptl_pt_index_t notify_spc_pt_index;
+	ptl_handle_eq_t eq_handle;
+	ptl_handle_eq_t passive_snd_eq_handle;
+	ptl_handle_eq_t passive_rcv_eq_handle;
+	ptl_handle_ct_t group_ct_handle;
+//	ptl_handle_ct_t passive_ct_handle;
+	ptl_handle_ct_t comm_ct_handle[GASPI_MAX_QP];
 	struct portals4_ctx_info* local_info;
 	struct portals4_ctx_info* remote_info;
+	int8_t *pte_states;
+	int max_ptes;
 } gaspi_portals4_ctx;
 
 #endif // _GPI2_BXI_H_

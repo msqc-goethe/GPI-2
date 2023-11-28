@@ -128,6 +128,9 @@ pgaspi_alloc_group_comm_mem (gaspi_context_t * const gctx,
   memset (group_ctx->rrcd[gctx->rank].data.buf, 0, size);
 
   group_ctx->rrcd[gctx->rank].size = size;
+#ifdef GPI2_DEVICE_BXI
+  group_ctx->rrcd[gctx->rank].mem_kind = GASPI_GROUP_MEM;
+#endif
 
   if (pgaspi_dev_register_mem (gctx, &(group_ctx->rrcd[gctx->rank])) !=
       GASPI_SUCCESS)
@@ -603,7 +606,6 @@ _gaspi_sync_wait (gaspi_context_t * const gctx,
       return GASPI_TIMEOUT;
     }
   }
-
   return GASPI_SUCCESS;
 }
 

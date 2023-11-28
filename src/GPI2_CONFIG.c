@@ -18,7 +18,9 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 
 #include "GPI2.h"
 #include "GPI2_Utility.h"
-
+#ifdef GPI2_DEVICE_BXI
+#include <portals4.h>	
+#endif
 #define GASPI_MAX_GROUPS (32)
 #define GASPI_MAX_MSEGS (255)
 #define GASPI_MAX_QSIZE (4096)
@@ -60,7 +62,7 @@ gaspi_config_t glb_gaspi_cfg = {
       },
       {
           //bxi struct
-          -1 //iface
+          PTL_IFACE_DEFAULT //iface change this to PTL_IFACE_DEFAULT?
       },
       {
           //tcp struct

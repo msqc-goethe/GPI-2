@@ -3,8 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 add_subdirectory(devices)
 
 add_library(
-  ${PROJECT_NAME}
-  SHARED
+  ${PROJECT_NAME} SHARED
   "GPI2.c"
   "GPI2_ATOMIC.c"
   "GPI2_CM.c"
@@ -33,9 +32,14 @@ target_link_libraries(
 target_compile_definitions(
   ${PROJECT_NAME}
   PRIVATE
+    "$<$<CONFIG:Debug>:DEBUG>"
     "$<$<BOOL:${WITH_IB}>:GPI2_DEVICE_IB>"
     "$<$<BOOL:${WITH_BXI}>:GPI2_DEVICE_BXI>"
     "$<$<AND:$<NOT:$<BOOL:${WITH_IB}>>,$<NOT:$<BOOL:${WITH_BXI}>>>:GPI2_DEVICE_TCP>"
 )
 target_compile_features(${PROJECT_NAME} PRIVATE c_std_11)
 target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-deprecated-declarations")
+
+include(GNUInstallDirs)
+install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES "include/GASPI_Ext.h" "include/GASPI.h" "include/GASPI_Threads.h" "include/GASPI_types.h" "include/PGASPI.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

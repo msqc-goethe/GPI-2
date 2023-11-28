@@ -262,7 +262,6 @@ gaspi_sn_writen (const int sockfd, const void *data_ptr, const size_t n)
 
   ptr = (char *) data_ptr;
   left = n;
-
   while (left > 0)
   {
     if ((ndone = write (sockfd, ptr, left)) <= 0)
@@ -273,6 +272,7 @@ gaspi_sn_writen (const int sockfd, const void *data_ptr, const size_t n)
       }
       else
       {
+      GASPI_DEBUG_PRINT_ERROR("gaspi_sn_writen error %d",errno);
         return (-1);
       }
     }
@@ -716,7 +716,7 @@ gaspi_sn_send_recv_cmd (const gaspi_rank_t target_rank,
 
   if (rret != (ssize_t) recv_size)
   {
-    GASPI_DEBUG_PRINT_ERROR ("Failed to read from %u", target_rank);
+    GASPI_DEBUG_PRINT_ERROR ("Failed to read from %u %u", target_rank,rret);
     return GPI2_SN_ERROR;
   }
 

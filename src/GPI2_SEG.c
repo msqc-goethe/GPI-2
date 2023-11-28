@@ -234,6 +234,9 @@ static inline int pgaspi_segment_alloc_maybe(
 	myrank_mseg->size = size;
 	myrank_mseg->notif_spc_size = NOTIFICATIONS_SPACE_SIZE;
 	myrank_mseg->trans = 1;
+#ifdef GPI2_DEVICE_BXI
+	myrank_mseg->mem_kind = GASPI_NORMAL_MEM;
+#endif
 
 	if (pgaspi_dev_register_mem(gctx, myrank_mseg) < 0) {
 		free(myrank_mseg->notif_spc.ptr);
@@ -317,16 +320,9 @@ gaspi_return_t pgaspi_segment_delete(const gaspi_segment_id_t segment_id) {
 	myrank_mseg->size = 0;
 	myrank_mseg->notif_spc_size = 0;
 	myrank_mseg->trans = 0;
-	myrank_mseg->mr[0] = NULL;
-	myrank_mseg->mr[1] = NULL;
 #ifdef GPI2_DEVICE_IB
 	myrank_mseg->rkey[0] = 0;
 	myrank_mseg->rkey[1] = 0;
-#elif GPI2_DEVICE_BXI
-	myrank_mseg->data_md_handle = PTL_INVALID_HANDLE;
-	myrank_mseg->notify_spc_md_handle = PTL_INVALID_HANDLE;
-	myrank_mseg->data_le_handle = PTL_INVALID_HANDLE;
-	myrank_mseg->notify_spc_le_handle = PTL_INVALID_HANDLE;
 #endif
 	myrank_mseg->user_provided = 0;
 
