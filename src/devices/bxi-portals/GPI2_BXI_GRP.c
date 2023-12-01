@@ -24,12 +24,15 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include "GPI2_Coll.h"
 
 /* Group utilities */
-int pgaspi_dev_poll_groups(gaspi_context_t* const gctx) {
+int pgaspi_dev_poll_groups(gaspi_context_t* const gctx,
+                           const gaspi_timeout_t timeout_ms) {
 	int ret;
-	ptl_ct_event_t ct,nct;
+	ptl_ct_event_t ct, nct;
+	const gaspi_cycles_t s0 = gaspi_get_cycles();
 
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
-	memset(&nct,0,sizeof(ptl_ct_event_t));
+	memset(&nct, 0, sizeof(ptl_ct_event_t));
+again:
 	ret = PtlCTGet(portals4_dev_ctx->group_ct_handle, &ct);
 
 	if (PTL_OK != ret) {
@@ -42,8 +45,28 @@ int pgaspi_dev_poll_groups(gaspi_context_t* const gctx) {
 		return -1;
 	}
 
+	if (ct.success == 0) {
+		const gaspi_cycles_t s1 = gaspi_get_cycles();
+		const gaspi_cycles_t tdelta = s1 - s0;
+
+		const float ms = (float)tdelta * gctx->cycles_to_msecs;
+		
+		if( ms > timeout_ms){
+			return GASPI_TIMEOUT;
+		}
+
+		goto again;
+	}
+
 	gctx->ne_count_grp -= ct.success;
-	PtlCTSet(portals4_dev_ctx->group_ct_handle,nct);
+
+	if (gctx->ne_count_grp != 0) {
+		GASPI_DEBUG_PRINT_ERROR("group count error, count is %d",
+		                        gctx->ne_count_grp);
+		return -1;
+	}
+
+	PtlCTSet(portals4_dev_ctx->group_ct_handle, nct);
 	return ct.success;
 }
 
@@ -57,11 +80,13 @@ int pgaspi_dev_post_group_write(gaspi_context_t* const gctx,
 	gaspi_portals4_ctx* const portals4_dev_ctx =
 	    (gaspi_portals4_ctx*) gctx->device->ctx;
 	ptl_handle_md_t md =
-	    ((portals4_mr*)gctx->groups[group].rrcd[gctx->rank].mr[0])->group_md;
-	ptl_pt_index_t pt_index = ((portals4_mr*)gctx->groups[group].rrcd[gctx->rank].mr[0])->pt_index;
+	    ((portals4_mr*) gctx->groups[group].rrcd[gctx->rank].mr[0])->group_md;
+	ptl_pt_index_t pt_index =
+	    ((portals4_mr*) gctx->groups[group].rrcd[gctx->rank].mr[0])->pt_index;
 	ptl_size_t local_offset = (unsigned long) local_addr -
 	                          gctx->groups[group].rrcd[gctx->rank].data.addr;
-	ptl_size_t remote_offset = (unsigned long) remote_addr - gctx->groups[group].rrcd[dst].data.addr;
+	ptl_size_t remote_offset =
+	    (unsigned long) remote_addr - gctx->groups[group].rrcd[dst].data.addr;
 
 	ret = PtlPut(md,
 	             local_offset,
