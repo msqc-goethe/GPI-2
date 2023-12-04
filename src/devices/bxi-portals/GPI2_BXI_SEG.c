@@ -117,19 +117,10 @@ int _pgaspi_dev_unregister_mem(gaspi_context_t const* const gctx,
 			if (!PtlHandleIsEqual(mr_ptr->le_handle, PTL_INVALID_HANDLE)) {
 				ret = PtlLEUnlink(mr_ptr->le_handle);
 				if (PTL_OK != ret) {
-					GASPI_DEBUG_PRINT_ERROR("PtlMDRelease failed with %d", ret);
+					GASPI_DEBUG_PRINT_ERROR("PtlLEUnlink failed with %d", ret);
 					return -1;
 				}
 			}
-
-			/* if (!PtlHandleIsEqual(mr_ptr->passive_le_handle, */
-			/*                       PTL_INVALID_HANDLE)) { */
-			/* 	ret = PtlLEUnlink(mr_ptr->passive_le_handle); */
-			/* 	if (PTL_OK != ret) { */
-			/* 		GASPI_DEBUG_PRINT_ERROR("PtlMDRelease failed with %d", ret); */
-			/* 		return -1; */
-			/* 	} */
-			/* } */
 
 			if (mr_ptr->pt_index) {
 				ret = PtlPTFree(portals4_dev_ctx->ni_handle, mr_ptr->pt_index);
@@ -157,7 +148,7 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 	portals4_mr* mr_ptr = NULL;
 
 	le_options = PTL_LE_OP_PUT | PTL_LE_OP_GET | PTL_LE_EVENT_SUCCESS_DISABLE |
-	             PTL_LE_EVENT_LINK_DISABLE;
+	             PTL_LE_EVENT_LINK_DISABLE | PTL_LE_EVENT_COMM_DISABLE;
 
 	if (seg->data.buf != NULL) {
 		memset(&md, 0, sizeof(ptl_md_t));
@@ -181,53 +172,48 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 
 		md.start = seg->data.buf;
 		md.length = seg->size;
-		md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_REPLY |
-		             PTL_MD_EVENT_CT_ACK;
+		//md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_REPLY |
+		//            PTL_MD_EVENT_CT_ACK;
+		md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_SEND |
+		             PTL_MD_EVENT_CT_REPLY | PTL_MD_EVENT_SEND_DISABLE;
 		md.eq_handle = portals4_dev_ctx->eq_handle;
 
-		if (seg->mem_kind == GASPI_GROUP_MEM) {
-			// register MD to group communication counting events
-			md.ct_handle = portals4_dev_ctx->group_ct_handle;
+		// register MD to group communication counting events
+		md.ct_handle = portals4_dev_ctx->group_ct_handle;
 
-			ret =
-			    PtlMDBind(portals4_dev_ctx->ni_handle, &md, &mr_ptr->group_md);
-			if (PTL_OK != ret) {
-				GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
-				_pgaspi_dev_unregister_mem(gctx, seg);
-				return -1;
-			}
+		ret = PtlMDBind(portals4_dev_ctx->ni_handle, &md, &mr_ptr->group_md);
+		if (PTL_OK != ret) {
+			GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
+			_pgaspi_dev_unregister_mem(gctx, seg);
+			return -1;
 		}
-		else {
-			// register MD for passive communication counting events
-			md.ct_handle = PTL_CT_NONE;
-			md.eq_handle = portals4_dev_ctx->passive_snd_eq_handle;
+		// register MD for passive communication counting events
+		md.ct_handle = PTL_CT_NONE;
+		md.eq_handle = portals4_dev_ctx->passive_snd_eq_handle;
 
+		ret = PtlMDBind(portals4_dev_ctx->ni_handle, &md, &mr_ptr->passive_md);
+
+		if (PTL_OK != ret) {
+			GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
+			_pgaspi_dev_unregister_mem(gctx, seg);
+			return -1;
+		}
+
+		// register MD for one-sided communication counting events
+		md.eq_handle = PTL_EQ_NONE;
+		for (i = 0; i < GASPI_MAX_QP; ++i) {
+			md.ct_handle = portals4_dev_ctx->comm_ct_handle[i];
 			ret = PtlMDBind(
-			    portals4_dev_ctx->ni_handle, &md, &mr_ptr->passive_md);
+			    portals4_dev_ctx->ni_handle, &md, &mr_ptr->comm_md[i]);
 
 			if (PTL_OK != ret) {
 				GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
 				_pgaspi_dev_unregister_mem(gctx, seg);
 				return -1;
 			}
-
-			// register MD for one-sided communication counting events
-			md.eq_handle = PTL_EQ_NONE;
-			for (i = 0; i < GASPI_MAX_QP; ++i) {
-				md.ct_handle = portals4_dev_ctx->comm_ct_handle[i];
-				ret = PtlMDBind(
-				    portals4_dev_ctx->ni_handle, &md, &mr_ptr->comm_md[i]);
-
-				if (PTL_OK != ret) {
-					GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
-					_pgaspi_dev_unregister_mem(gctx, seg);
-					return -1;
-				}
-			}
 		}
 
-		if (seg->mem_kind != GASPI_GROUP_MEM)
-			le_options |= PTL_LE_IS_ACCESSIBLE;
+		//le_options |= PTL_LE_IS_ACCESSIBLE;
 
 		ret = ptl_le_factory(portals4_dev_ctx,
 		                     seg->data.buf,
@@ -268,42 +254,36 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 		md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_REPLY |
 		             PTL_MD_EVENT_CT_ACK;
 		md.eq_handle = portals4_dev_ctx->eq_handle;
-		if (seg->mem_kind == GASPI_GROUP_MEM) {
-			// register MD to group communication counting events
-			md.ct_handle = portals4_dev_ctx->group_ct_handle;
+		// register MD to group communication counting events
+		md.ct_handle = portals4_dev_ctx->group_ct_handle;
 
-			ret =
-			    PtlMDBind(portals4_dev_ctx->ni_handle, &md, &mr_ptr->group_md);
-			if (PTL_OK != ret) {
-				GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
-				_pgaspi_dev_unregister_mem(gctx, seg);
-				return -1;
-			}
+		ret = PtlMDBind(portals4_dev_ctx->ni_handle, &md, &mr_ptr->group_md);
+		if (PTL_OK != ret) {
+			GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
+			_pgaspi_dev_unregister_mem(gctx, seg);
+			return -1;
 		}
-		else {
-			// register MD for passive communication counting events
-			md.ct_handle = PTL_CT_NONE;
-			md.eq_handle = portals4_dev_ctx->passive_snd_eq_handle;
+		// register MD for passive communication counting events
+		md.ct_handle = PTL_CT_NONE;
+		md.eq_handle = portals4_dev_ctx->passive_snd_eq_handle;
+
+		ret = PtlMDBind(portals4_dev_ctx->ni_handle, &md, &mr_ptr->passive_md);
+		if (PTL_OK != ret) {
+			GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
+			_pgaspi_dev_unregister_mem(gctx, seg);
+			return -1;
+		}
+
+		// register MD for one-sided communication counting events
+		for (i = 0; i < GASPI_MAX_QP; ++i) {
+			md.ct_handle = portals4_dev_ctx->comm_ct_handle[i];
 
 			ret = PtlMDBind(
-			    portals4_dev_ctx->ni_handle, &md, &mr_ptr->passive_md);
+			    portals4_dev_ctx->ni_handle, &md, &mr_ptr->comm_md[i]);
 			if (PTL_OK != ret) {
 				GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
 				_pgaspi_dev_unregister_mem(gctx, seg);
 				return -1;
-			}
-
-			// register MD for one-sided communication counting events
-			for (i = 0; i < GASPI_MAX_QP; ++i) {
-				md.ct_handle = portals4_dev_ctx->comm_ct_handle[i];
-
-				ret = PtlMDBind(
-				    portals4_dev_ctx->ni_handle, &md, &mr_ptr->comm_md[i]);
-				if (PTL_OK != ret) {
-					GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
-					_pgaspi_dev_unregister_mem(gctx, seg);
-					return -1;
-				}
 			}
 		}
 

@@ -165,10 +165,6 @@ static gaspi_return_t pgaspi_init_core(gaspi_context_t* const gctx) {
 	gctx->nsrc.notif_spc.addr = gctx->nsrc.data.addr;
 	gctx->nsrc.notif_spc_size = NOTIFICATIONS_SPACE_SIZE;
 	gctx->nsrc.data.addr += NOTIFICATIONS_SPACE_SIZE;
-// might be unnecessary here
-#ifdef GPI2_DEVICE_BXI
-	gctx->nsrc.mem_kind = GASPI_NORMAL_MEM;
-#endif
 
 	/* Register internal memory */
 	if (pgaspi_dev_register_mem(gctx, &(gctx->nsrc)) != 0) {
