@@ -122,7 +122,6 @@ gaspi_return_t pgaspi_dev_purge(gaspi_context_t* const gctx,
 			const float ms = (float) tdelta * gctx->cycles_to_msecs;
 
 			if (ms > timeout_ms) {
-				GASPI_DEBUG_PRINT_ERROR("GASPI_TIMEOUT");
 				return GASPI_TIMEOUT;
 			}
 		}
