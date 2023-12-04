@@ -19,21 +19,139 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include "GPI2.h"
 #include "GPI2_BXI.h"
 
-gaspi_return_t pgaspi_dev_atomic_fetch_add(
-    gaspi_context_t* const GASPI_UNUSED(gctx),
-    const gaspi_segment_id_t GASPI_UNUSED(segment_id),
-    const gaspi_offset_t GASPI_UNUSED(offset),
-    const gaspi_rank_t GASPI_UNUSED(rank),
-    const gaspi_atomic_value_t GASPI_UNUSED(val_add)) {
+gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
+                                           const gaspi_segment_id_t segment_id,
+                                           const gaspi_offset_t offset,
+                                           const gaspi_rank_t rank,
+                                           const gaspi_atomic_value_t val_add) {
+	int ret;
+	int nnr;
+	ptl_ct_event_t ce, nce;
+	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
+	portals4_mr* const local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[0];
+	portals4_mr* const remote_mr_ptr =
+	    (portals4_mr*) gctx->rrmd[segment_id][gctx->rank].mr[0];
+
+	gaspi_atomic_value_t* val_arr = (gaspi_atomic_value_t*) gctx->nsrc.data.buf;
+	val_arr[1] = val_add;
+
+	memset(&nce, 0, sizeof(ptl_ct_event_t));
+
+	ret = PtlFetchAtomic(local_mr_ptr->group_md,
+	                     0,
+	                     local_mr_ptr->group_md,
+	                     sizeof(gaspi_atomic_value_t),
+	                     sizeof(gaspi_atomic_value_t),
+	                     portals4_dev_ctx->remote_info[rank].phys_address,
+	                     remote_mr_ptr->pt_index,
+	                     0,
+	                     offset,
+	                     NULL,
+	                     0,
+	                     PTL_SUM,
+	                     PTL_UINT64_T);
+
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlFetchAtomic failed with %d", ret);
+		return GASPI_ERROR;
+	}
+
+	// PtlAtomicFetch call acutally creats two counting events, one for each associated memory descriptor
+	gctx->ne_count_grp += 2;
+	nnr = gctx->ne_count_grp;
+	// TODO: A timeout should be really used here
+	do {
+		ret = PtlCTGet(portals4_dev_ctx->group_ct_handle, &ce);
+
+		if (PTL_OK != ret) {
+			GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret);
+			return GASPI_ERROR;
+		}
+
+		if (ce.failure > 0) {
+			GASPI_DEBUG_PRINT_ERROR("atomic channel might be broken");
+			return GASPI_ERROR;
+		}
+	} while (ce.success != nnr);
+
+	ret = PtlCTSet(portals4_dev_ctx->group_ct_handle, nce);
+
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlCTSet failed with %d", ret);
+		return GASPI_ERROR;
+	}
+
+	gctx->ne_count_grp = 0;
+
 	return GASPI_SUCCESS;
 }
 
 gaspi_return_t pgaspi_dev_atomic_compare_swap(
-    gaspi_context_t* const GASPI_UNUSED(gctx),
-    const gaspi_segment_id_t GASPI_UNUSED(segment_id),
-    const gaspi_offset_t GASPI_UNUSED(offset),
-    const gaspi_rank_t GASPI_UNUSED(rank),
-    const gaspi_atomic_value_t GASPI_UNUSED(comparator),
-    const gaspi_atomic_value_t GASPI_UNUSED(val_new)) {
+    gaspi_context_t* const gctx,
+    const gaspi_segment_id_t segment_id,
+    const gaspi_offset_t offset,
+    const gaspi_rank_t rank,
+    const gaspi_atomic_value_t comparator,
+    const gaspi_atomic_value_t val_new) {
+	int ret;
+	int nnr;
+	ptl_ct_event_t ce, nce;
+	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
+	portals4_mr* const local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[0];
+	portals4_mr* const remote_mr_ptr =
+	    (portals4_mr*) gctx->rrmd[segment_id][gctx->rank].mr[0];
+
+	gaspi_atomic_value_t* val_arr = (gaspi_atomic_value_t*) gctx->nsrc.data.buf;
+	val_arr[1] = val_new;
+
+	memset(&nce, 0, sizeof(ptl_ct_event_t));
+
+	ret = PtlSwap(local_mr_ptr->group_md,
+	              0,
+	              local_mr_ptr->group_md,
+	              sizeof(gaspi_atomic_value_t),
+	              sizeof(gaspi_atomic_value_t),
+	              portals4_dev_ctx->remote_info[rank].phys_address,
+	              remote_mr_ptr->pt_index,
+	              0,
+	              offset,
+	              NULL,
+	              0,
+	              &comparator,
+	              PTL_CSWAP,
+	              PTL_UINT64_T);
+
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlFetchAtomic failed with %d", ret);
+		return GASPI_ERROR;
+	}
+
+	// PtlAtomicFetch call acutally creats two counting events, one for each associated memory descriptor
+	gctx->ne_count_grp += 2;
+	nnr = gctx->ne_count_grp;
+
+	do {
+		ret = PtlCTGet(portals4_dev_ctx->group_ct_handle, &ce);
+
+		if (PTL_OK != ret) {
+			GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret);
+			return GASPI_ERROR;
+		}
+
+		if (ce.failure > 0) {
+			GASPI_DEBUG_PRINT_ERROR("atomic queue might be broken");
+			return GASPI_ERROR;
+		}
+	} while (ce.success != nnr);
+
+	ret = PtlCTSet(portals4_dev_ctx->group_ct_handle, nce);
+
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlCTSet failed with %d", ret);
+		return GASPI_ERROR;
+	}
+
+	gctx->ne_count_grp = 0;
+
 	return GASPI_SUCCESS;
 }
