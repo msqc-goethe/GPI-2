@@ -20,8 +20,6 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #define _GPI2_BXI_H_
 
 #include <portals4.h>
-#include <portals4_bxiext.h>
-
 #include "GPI2_Dev.h"
 
 #define PORTALS4_EVENT_SLOTS (1024)

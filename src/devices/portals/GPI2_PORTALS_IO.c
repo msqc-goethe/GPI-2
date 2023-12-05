@@ -17,7 +17,7 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "GASPI.h"
 #include "GPI2.h"
-#include "GPI2_BXI.h"
+#include "GPI2_PORTALS.h"
 
 /* Communication functions */
 gaspi_return_t pgaspi_dev_write(gaspi_context_t* const gctx,

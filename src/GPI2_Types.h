@@ -25,7 +25,7 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include "GASPI_Ext.h"
 #include "GPI2_CM.h"
 
-#ifdef GPI2_DEVICE_BXI
+#ifdef GPI2_DEVICE_PORTALS
 #include <portals4.h>
 #endif
 

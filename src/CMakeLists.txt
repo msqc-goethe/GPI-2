@@ -26,16 +26,16 @@ target_include_directories(${PROJECT_NAME} PRIVATE "include")
 target_link_libraries(
   ${PROJECT_NAME}
   PRIVATE
-    "$<$<BOOL:${WITH_IB}>:ib-device>" "$<$<BOOL:${WITH_BXI}>:bxi-device>"
-    "$<$<AND:$<NOT:$<BOOL:${WITH_IB}>>,$<NOT:$<BOOL:${WITH_BXI}>>>:tcp-device>"
+    "$<$<BOOL:${WITH_IB}>:ib-device>" "$<$<BOOL:${WITH_PORTALS}>:portals-device>"
+    "$<$<AND:$<NOT:$<BOOL:${WITH_IB}>>,$<NOT:$<BOOL:${WITH_PORTALS}>>>:tcp-device>"
 )
 target_compile_definitions(
   ${PROJECT_NAME}
   PRIVATE
     "$<$<CONFIG:Debug>:DEBUG>"
     "$<$<BOOL:${WITH_IB}>:GPI2_DEVICE_IB>"
-    "$<$<BOOL:${WITH_BXI}>:GPI2_DEVICE_BXI>"
-    "$<$<AND:$<NOT:$<BOOL:${WITH_IB}>>,$<NOT:$<BOOL:${WITH_BXI}>>>:GPI2_DEVICE_TCP>"
+    "$<$<BOOL:${WITH_PORTALS}>:GPI2_DEVICE_PORTALS>"
+    "$<$<AND:$<NOT:$<BOOL:${WITH_IB}>>,$<NOT:$<BOOL:${WITH_PORTALS}>>>:GPI2_DEVICE_TCP>"
 )
 target_compile_features(${PROJECT_NAME} PRIVATE c_std_11)
 target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-deprecated-declarations")

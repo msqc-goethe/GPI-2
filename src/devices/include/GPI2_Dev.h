@@ -57,7 +57,7 @@ int pgaspi_dev_comm_queue_connect(gaspi_context_t const* const,
 /* Device interface (GASPI routines) */
 
 /* Groups */
-#ifdef GPI2_DEVICE_BXI
+#ifdef GPI2_DEVICE_PORTALS
 int pgaspi_dev_poll_groups(gaspi_context_t* const, const gaspi_timeout_t);
 #else
 int pgaspi_dev_poll_groups(gaspi_context_t* const);

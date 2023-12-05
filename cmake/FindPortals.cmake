@@ -1,11 +1,11 @@
 find_path(
 	PORTALS_INCLUDE_DIR
-	NAMES "portals4.h" "portals4_bxiext.h"
+	NAMES "portals4.h"
 	PATH_SUFFIXES "include"
 )
 
 find_library(PORTALS_LIBRARY
-	NAMES "libportals" "libportals.so"
+	NAMES "libportals.so"
 	PATH_SUFFIXES "lib" "lib64"
 )
 

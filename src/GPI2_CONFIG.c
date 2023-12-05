@@ -18,7 +18,7 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 
 #include "GPI2.h"
 #include "GPI2_Utility.h"
-#ifdef GPI2_DEVICE_BXI
+#ifdef GPI2_DEVICE_PORTALS
 #include <portals4.h>	
 #endif
 #define GASPI_MAX_GROUPS (32)
@@ -52,7 +52,7 @@ gaspi_config_t glb_gaspi_cfg = {
           0 //port to use
       }}},
     GASPI_IB, //network type
-#elif GPI2_DEVICE_BXI
+#elif GPI2_DEVICE_PORTALS
     {GASPI_BXI,
      {{
           //ib struct
@@ -152,7 +152,7 @@ gaspi_return_t pgaspi_config_set(const gaspi_config_t nconf) {
 	glb_gaspi_cfg.dev_config.params.ib.port_check =
 	    nconf.dev_config.params.ib.port_check;
 	if (nconf.network != GASPI_IB)
-#elif GPI2_DEVICE_BXI
+#elif GPI2_DEVICE_PORTALS
 	if (nconf.network != GASPI_BXI)
 #elif GPI2_DEVICE_TCP
 	if (nconf.network != GASPI_ETHERNET)

@@ -20,7 +20,7 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include "GASPI.h"
 #include "GPI2.h"
-#include "GPI2_BXI.h"
+#include "GPI2_PORTALS.h"
 #include "GPI2_Coll.h"
 
 /* Group utilities */

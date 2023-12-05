@@ -26,7 +26,7 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include <math.h>
 
 #include "GPI2.h"
-#include "GPI2_BXI.h"
+#include "GPI2_PORTALS.h"
 #include "GPI2_Dev.h"
 
 int _pgaspi_dev_cleanup_core(gaspi_portals4_ctx* const dev, int tnc) {

@@ -17,7 +17,7 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 */
 #include "GASPI.h"
 #include "GPI2.h"
-#include "GPI2_BXI.h"
+#include "GPI2_PORTALS.h"
 
 gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
                                            const gaspi_segment_id_t segment_id,
