@@ -15,6 +15,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 */
+
+#define _GNU_SOURCE
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
