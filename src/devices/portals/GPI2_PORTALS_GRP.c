@@ -20,45 +20,44 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include "GASPI.h"
 #include "GPI2.h"
-#include "GPI2_PORTALS.h"
 #include "GPI2_Coll.h"
+#include "GPI2_PORTALS.h"
 
 /* Group utilities */
 int pgaspi_dev_poll_groups(gaspi_context_t* const gctx,
                            const gaspi_timeout_t timeout_ms) {
 	int ret;
-	ptl_ct_event_t ct, nct;
+	ptl_ct_event_t ce, nct;
 	const gaspi_cycles_t s0 = gaspi_get_cycles();
-
+	const int nnr = gctx->ne_count_grp;
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 	memset(&nct, 0, sizeof(ptl_ct_event_t));
-again:
-	ret = PtlCTGet(portals4_dev_ctx->group_ct_handle, &ct);
+	do {
+		ret = PtlCTGet(portals4_dev_ctx->group_ct_handle, &ce);
 
-	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret);
-		return -1;
-	}
-
-	if (ct.failure > 0) {
-		GASPI_DEBUG_PRINT_ERROR("Collectives queue might be broken");
-		return -1;
-	}
-
-	if (ct.success == 0) {
-		const gaspi_cycles_t s1 = gaspi_get_cycles();
-		const gaspi_cycles_t tdelta = s1 - s0;
-
-		const float ms = (float)tdelta * gctx->cycles_to_msecs;
-		
-		if( ms > timeout_ms){
-			return GASPI_TIMEOUT;
+		if (PTL_OK != ret) {
+			GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret);
+			return GASPI_ERROR;
 		}
 
-		goto again;
-	}
+		if (ce.failure > 0) {
+			GASPI_DEBUG_PRINT_ERROR("Collectives queue might be broken");
+			return GASPI_ERROR;
+		}
 
-	gctx->ne_count_grp -= ct.success;
+		if (ce.success == 0) {
+			const gaspi_cycles_t s1 = gaspi_get_cycles();
+			const gaspi_cycles_t tdelta = s1 - s0;
+
+			const float ms = (float) tdelta * gctx->cycles_to_msecs;
+
+			if (ms > timeout_ms) {
+				return GASPI_TIMEOUT;
+			}
+		}
+	} while (ce.success != nnr);
+
+	gctx->ne_count_grp -= nnr;
 
 	if (gctx->ne_count_grp != 0) {
 		GASPI_DEBUG_PRINT_ERROR("group count error, count is %d",
@@ -67,7 +66,7 @@ again:
 	}
 
 	PtlCTSet(portals4_dev_ctx->group_ct_handle, nct);
-	return ct.success;
+	return ce.success;
 }
 
 int pgaspi_dev_post_group_write(gaspi_context_t* const gctx,
