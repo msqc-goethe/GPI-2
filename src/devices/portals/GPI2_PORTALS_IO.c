@@ -32,9 +32,14 @@ gaspi_return_t pgaspi_dev_write(gaspi_context_t* const gctx,
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 	portals4_mr* local_mr_ptr =
 	    (portals4_mr*) gctx->rrmd[segment_id_local][gctx->rank].mr[0];
-	// Ugly hack: pt_index of remote segment should be the same index as the local counter part
-	portals4_mr* remote_mr_ptr =
-	    (portals4_mr*) gctx->rrmd[segment_id_remote][gctx->rank].mr[0];
+
+	// Creation of memory segments is a collective operation i.e. the pt population
+	// should be the same on all ranks. Thus, we can check the local mr to find
+	// the needed pt index for the target list. We have to use the local rank as the
+	// second index since mr data structures are not exchanged among all ranks.
+	const ptl_pt_index_t target_pt_index =
+	    ((portals4_mr*) (gctx->rrmd[segment_id_remote][gctx->rank].mr[0]))
+	        ->pt_index;
 
 	if (gctx->ne_count_c[queue] == gctx->config->queue_size_max) {
 		return GASPI_QUEUE_FULL;
@@ -45,7 +50,7 @@ gaspi_return_t pgaspi_dev_write(gaspi_context_t* const gctx,
 	             size,
 	             PORTALS4_ACK_TYPE,
 	             portals4_dev_ctx->remote_info[rank].phys_address,
-	             remote_mr_ptr->pt_index,
+	             target_pt_index,
 	             0,
 	             offset_remote,
 	             NULL,
@@ -73,6 +78,14 @@ gaspi_return_t pgaspi_dev_read(gaspi_context_t* const gctx,
 	portals4_mr* const local_mr_ptr =
 	    (portals4_mr*) gctx->rrmd[segment_id_local][gctx->rank].mr[0];
 
+	// Creation of memory segments is a collective operation i.e. the pt population
+	// should be the same on all ranks. Thus, we can check the local mr to find
+	// the needed pt index for the target list. We have to use the local rank as the
+	// second index since mr data structures are not exchanged among all ranks.
+	const ptl_pt_index_t target_pt_index =
+	    ((portals4_mr*) (gctx->rrmd[segment_id_remote][gctx->rank].mr[0]))
+	        ->pt_index;
+
 	if (gctx->ne_count_c[queue] == gctx->config->queue_size_max) {
 		return GASPI_QUEUE_FULL;
 	}
@@ -81,7 +94,7 @@ gaspi_return_t pgaspi_dev_read(gaspi_context_t* const gctx,
 	             offset_local,
 	             size,
 	             portals4_dev_ctx->remote_info[rank].phys_address,
-	             local_mr_ptr->pt_index, // should be symmetric
+	             target_pt_index,
 	             0,
 	             offset_remote,
 	             NULL);
@@ -194,15 +207,22 @@ gaspi_return_t pgaspi_dev_write_list(
 	for (i = 0; i < num; ++i) {
 		portals4_mr* const local_mr_ptr =
 		    (portals4_mr*) gctx->rrmd[segment_id_local[i]][gctx->rank].mr[0];
-		portals4_mr* const remote_mr_ptr =
-		    (portals4_mr*) gctx->rrmd[segment_id_remote[i]][gctx->rank].mr[0];
+
+		// Creation of memory segments is a collective operation i.e. the pt population
+		// should be the same on all ranks. Thus, we can check the local mr to find
+		// the needed pt index for the target list. We have to use the local rank as the
+		// second index since mr data structures are not exchanged among all ranks.
+		const ptl_pt_index_t target_pt_index =
+		    ((portals4_mr*) (gctx->rrmd[segment_id_remote[i]][gctx->rank]
+		                         .mr[0]))
+		        ->pt_index;
 
 		ret = PtlPut(local_mr_ptr->comm_md[queue],
 		             offset_local[i],
 		             size[i],
 		             PORTALS4_ACK_TYPE,
 		             portals4_dev_ctx->remote_info[rank].phys_address,
-		             remote_mr_ptr->pt_index,
+		             target_pt_index,
 		             0,
 		             offset_remote[i],
 		             NULL,
@@ -240,14 +260,21 @@ gaspi_return_t pgaspi_dev_read_list(gaspi_context_t* const gctx,
 	for (i = 0; i < num; ++i) {
 		portals4_mr* const local_mr_ptr =
 		    (portals4_mr*) gctx->rrmd[segment_id_local[i]][gctx->rank].mr[0];
-		portals4_mr* const remote_mr_ptr =
-		    (portals4_mr*) gctx->rrmd[segment_id_remote[i]][gctx->rank].mr[0];
+
+		// Creation of memory segments is a collective operation i.e. the pt population
+		// should be the same on all ranks. Thus, we can check the local mr to find
+		// the needed pt index for the target list. We have to use the local rank as the
+		// second index since mr data structures are not exchanged among all ranks.
+		const ptl_pt_index_t target_pt_index =
+		    ((portals4_mr*) (gctx->rrmd[segment_id_remote[i]][gctx->rank]
+		                         .mr[0]))
+		        ->pt_index;
 
 		ret = PtlGet(local_mr_ptr->comm_md[queue],
 		             offset_local[i],
 		             size[i],
 		             portals4_dev_ctx->remote_info[rank].phys_address,
-		             remote_mr_ptr->pt_index,
+		             target_pt_index,
 		             0,
 		             offset_remote[i],
 		             NULL);
@@ -272,8 +299,14 @@ gaspi_return_t pgaspi_dev_notify(gaspi_context_t* const gctx,
 	int ret;
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 	portals4_mr* const local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[1];
-	portals4_mr* const remote_mr_ptr =
-	    (portals4_mr*) gctx->rrmd[segment_id_remote][gctx->rank].mr[1];
+
+	// Creation of memory segments is a collective operation i.e. the pt population
+	// should be the same on all ranks. Thus, we can check the local mr to find
+	// the needed pt index for the target list. We have to use the local rank as the
+	// second index since mr data structures are not exchanged among all ranks.
+	const ptl_pt_index_t target_pt_index =
+	    ((portals4_mr*) (gctx->rrmd[segment_id_remote][gctx->rank].mr[1]))
+	        ->pt_index;
 
 	if (gctx->ne_count_c[queue] == gctx->config->queue_size_max) {
 		return GASPI_QUEUE_FULL;
@@ -286,7 +319,7 @@ gaspi_return_t pgaspi_dev_notify(gaspi_context_t* const gctx,
 	             sizeof(gaspi_notification_t),
 	             PORTALS4_ACK_TYPE,
 	             portals4_dev_ctx->remote_info[rank].phys_address,
-	             remote_mr_ptr->pt_index,
+	             target_pt_index,
 	             0,
 	             notification_id * sizeof(gaspi_notification_t),
 	             NULL,
@@ -318,7 +351,18 @@ gaspi_return_t pgaspi_dev_write_notify(
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 	portals4_mr* local_mr_ptr =
 	    (portals4_mr*) gctx->rrmd[segment_id_local][gctx->rank].mr[0];
-	// Ugly hack: pt_index of remote segment should be the same index as the local counter part
+
+	// Creation of memory segments is a collective operation i.e. the pt population
+	// should be the same on all ranks. Thus, we can check the local mr to find
+	// the needed pt index for the target list. We have to use the local rank as the
+	// second index since mr data structures are not exchanged among all ranks.
+	const ptl_pt_index_t target_pt_index =
+	    ((portals4_mr*) (gctx->rrmd[segment_id_remote][gctx->rank].mr[0]))
+	        ->pt_index;
+	const ptl_pt_index_t target_notify_pt_index =
+	    ((portals4_mr*) (gctx->rrmd[segment_id_remote][gctx->rank].mr[1]))
+	        ->pt_index;
+
 	portals4_mr* remote_mr_ptr =
 	    (portals4_mr*) gctx->rrmd[segment_id_remote][gctx->rank].mr[0];
 
@@ -337,7 +381,7 @@ gaspi_return_t pgaspi_dev_write_notify(
 	             size,
 	             PORTALS4_ACK_TYPE,
 	             portals4_dev_ctx->remote_info[rank].phys_address,
-	             remote_mr_ptr->pt_index,
+	             target_pt_index,
 	             0,
 	             offset_remote,
 	             NULL,
@@ -352,16 +396,13 @@ gaspi_return_t pgaspi_dev_write_notify(
 	    notification_value;
 
 	local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[1];
-	// Ugly hack: pt_index of remote segment should be the same index as the local counter part
-	remote_mr_ptr =
-	    (portals4_mr*) gctx->rrmd[segment_id_remote][gctx->rank].mr[1];
 
 	ret = PtlTriggeredPut(local_mr_ptr->comm_md[queue],
 	                      notification_id * sizeof(gaspi_notification_t),
 	                      sizeof(gaspi_notification_t),
 	                      PORTALS4_ACK_TYPE,
 	                      portals4_dev_ctx->remote_info[rank].phys_address,
-	                      remote_mr_ptr->pt_index,
+	                      target_notify_pt_index,
 	                      0,
 	                      notification_id * sizeof(gaspi_notification_t),
 	                      NULL,
@@ -396,15 +437,80 @@ gaspi_return_t pgaspi_dev_write_list_notify(
 }
 
 gaspi_return_t pgaspi_dev_read_notify(
-    gaspi_context_t* const GASPI_UNUSED(gctx),
-    const gaspi_segment_id_t GASPI_UNUSED(segment_id_local),
-    const gaspi_offset_t GASPI_UNUSED(offset_local),
-    const gaspi_rank_t GASPI_UNUSED(rank),
-    const gaspi_segment_id_t GASPI_UNUSED(segment_id_remote),
-    const gaspi_offset_t GASPI_UNUSED(offset_remote),
-    const gaspi_size_t GASPI_UNUSED(size),
-    const gaspi_notification_id_t GASPI_UNUSED(notification_id),
-    const gaspi_queue_id_t GASPI_UNUSED(queue)) {
+    gaspi_context_t* const gctx,
+    const gaspi_segment_id_t segment_id_local,
+    const gaspi_offset_t offset_local,
+    const gaspi_rank_t rank,
+    const gaspi_segment_id_t segment_id_remote,
+    const gaspi_offset_t offset_remote,
+    const gaspi_size_t size,
+    const gaspi_notification_id_t notification_id,
+    const gaspi_queue_id_t queue) {
+	int ret;
+	ptl_ct_event_t ce;
+	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
+	portals4_mr* local_mr_ptr =
+	    (portals4_mr*) gctx->rrmd[segment_id_local][gctx->rank].mr[0];
+
+	// Creation of memory segments is a collective operation i.e. the pt population
+	// should be the same on all ranks. Thus, we can check the local mr to find
+	// the needed pt index for the target list. We have to use the local rank as the
+	// second index since mr data structures are not exchanged among all ranks.
+	const ptl_pt_index_t target_pt_index =
+	    ((portals4_mr*) (gctx->rrmd[segment_id_remote][gctx->rank].mr[0]))
+	        ->pt_index;
+	const ptl_pt_index_t target_notify_pt_index =
+	    ((portals4_mr*) (gctx->rrmd[segment_id_remote][gctx->rank].mr[1]))
+	        ->pt_index;
+
+	portals4_mr* remote_mr_ptr =
+	    (portals4_mr*) gctx->rrmd[segment_id_remote][gctx->rank].mr[0];
+
+	if (gctx->ne_count_c[queue] + 2 == gctx->config->queue_size_max) {
+		return GASPI_QUEUE_FULL;
+	}
+
+	ret = PtlCTGet(portals4_dev_ctx->comm_ct_handle[queue], &ce);
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret);
+		return GASPI_ERROR;
+	}
+
+	ret = PtlGet(local_mr_ptr->comm_md[queue],
+	             offset_local,
+	             size,
+	             portals4_dev_ctx->remote_info[rank].phys_address,
+	             target_pt_index,
+	             0,
+	             offset_remote,
+	             NULL);
+
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlGet failed with %d", ret);
+		return GASPI_ERROR;
+	}
+
+	local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[1];
+
+	ret =
+	    PtlTriggeredGet(local_mr_ptr->comm_md[queue],
+	                    notification_id * sizeof(gaspi_notification_t),
+	                    sizeof(gaspi_notification_t),
+	                    portals4_dev_ctx->remote_info[rank].phys_address,
+	                    target_notify_pt_index,
+	                    0,
+	                    NOTIFICATIONS_SPACE_SIZE - sizeof(gaspi_notification_t),
+	                    NULL,
+	                    portals4_dev_ctx->comm_ct_handle[queue],
+	                    ce.success + 1);
+
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlGetTriggered failed with %d", ret);
+		return GASPI_ERROR;
+	}
+
+	gctx->ne_count_c[queue] += 2;
+
 	return GASPI_SUCCESS;
 }
 

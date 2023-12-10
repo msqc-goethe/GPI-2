@@ -29,8 +29,9 @@ gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
 	ptl_ct_event_t ce, nce;
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 	portals4_mr* const local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[0];
-	portals4_mr* const remote_mr_ptr =
-	    (portals4_mr*) gctx->rrmd[segment_id][gctx->rank].mr[0];
+
+	const ptl_pt_index_t target_pt_index =
+	    ((portals4_mr*) (gctx->rrmd[segment_id][gctx->rank].mr[0]))->pt_index;
 
 	gaspi_atomic_value_t* val_arr = (gaspi_atomic_value_t*) gctx->nsrc.data.buf;
 	val_arr[1] = val_add;
@@ -43,7 +44,7 @@ gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
 	                     sizeof(gaspi_atomic_value_t),
 	                     sizeof(gaspi_atomic_value_t),
 	                     portals4_dev_ctx->remote_info[rank].phys_address,
-	                     remote_mr_ptr->pt_index,
+	                     target_pt_index,
 	                     0,
 	                     offset,
 	                     NULL,
@@ -55,10 +56,11 @@ gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
 		GASPI_DEBUG_PRINT_ERROR("PtlFetchAtomic failed with %d", ret);
 		return GASPI_ERROR;
 	}
-
-	// PtlAtomicFetch call acutally creats two counting events, one for each associated memory descriptor
-	gctx->ne_count_grp += 2;
+	// the number of events to add to ne_count_grp depends on the flags
+	// used for the md
+	gctx->ne_count_grp++;
 	nnr = gctx->ne_count_grp;
+
 	// TODO: A timeout should be really used here
 	do {
 		ret = PtlCTGet(portals4_dev_ctx->group_ct_handle, &ce);
@@ -98,8 +100,8 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
 	ptl_ct_event_t ce, nce;
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 	portals4_mr* const local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[0];
-	portals4_mr* const remote_mr_ptr =
-	    (portals4_mr*) gctx->rrmd[segment_id][gctx->rank].mr[0];
+	const ptl_pt_index_t target_pt_index =
+	    ((portals4_mr*) (gctx->rrmd[segment_id][gctx->rank].mr[0]))->pt_index;
 
 	gaspi_atomic_value_t* val_arr = (gaspi_atomic_value_t*) gctx->nsrc.data.buf;
 	val_arr[1] = val_new;
@@ -112,7 +114,7 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
 	              sizeof(gaspi_atomic_value_t),
 	              sizeof(gaspi_atomic_value_t),
 	              portals4_dev_ctx->remote_info[rank].phys_address,
-	              remote_mr_ptr->pt_index,
+	              target_pt_index,
 	              0,
 	              offset,
 	              NULL,
@@ -125,9 +127,9 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
 		GASPI_DEBUG_PRINT_ERROR("PtlFetchAtomic failed with %d", ret);
 		return GASPI_ERROR;
 	}
-
-	// PtlAtomicFetch call acutally creats two counting events, one for each associated memory descriptor
-	gctx->ne_count_grp += 2;
+	// the number of events to add to ne_count_grp depends on the flags
+	// used for the md
+	gctx->ne_count_grp++;
 	nnr = gctx->ne_count_grp;
 
 	do {
