@@ -26,8 +26,8 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include <math.h>
 
 #include "GPI2.h"
-#include "GPI2_PORTALS.h"
 #include "GPI2_Dev.h"
+#include "GPI2_PORTALS.h"
 
 int _pgaspi_dev_cleanup_core(gaspi_portals4_ctx* const dev, int tnc) {
 	int ret, i;
@@ -59,10 +59,10 @@ int _pgaspi_dev_cleanup_core(gaspi_portals4_ctx* const dev, int tnc) {
 		}
 	}
 
-	if (!PtlHandleIsEqual(dev->passive_snd_eq_handle, PTL_INVALID_HANDLE)) {
-		ret = PtlEQFree(dev->passive_snd_eq_handle);
+	if (!PtlHandleIsEqual(dev->passive_snd_ct_handle, PTL_INVALID_HANDLE)) {
+		ret = PtlCTFree(dev->passive_snd_ct_handle);
 		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlEQFree failed with %d", ret);
+			GASPI_DEBUG_PRINT_ERROR("PtlCTFree failed with %d", ret);
 			return -4;
 		}
 	}
@@ -114,7 +114,7 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	portals4_dev_ctx->eq_handle = PTL_INVALID_HANDLE;
 	portals4_dev_ctx->group_ct_handle = PTL_INVALID_HANDLE;
 	portals4_dev_ctx->passive_rcv_eq_handle = PTL_INVALID_HANDLE;
-	portals4_dev_ctx->passive_snd_eq_handle = PTL_INVALID_HANDLE;
+	portals4_dev_ctx->passive_snd_ct_handle = PTL_INVALID_HANDLE;
 
 	for (i = 0; i < GASPI_MAX_QP; ++i) {
 		portals4_dev_ctx->comm_ct_handle[i] = PTL_INVALID_HANDLE;
@@ -164,6 +164,22 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		goto err_d;
 	}
 
+	ret = PtlNIInit(iface,
+	                PTL_NI_MATCHING | PTL_NI_PHYSICAL,
+	                PTL_PID_ANY,
+	                &ni_req_limits,
+	                &ni_limits,
+	                &portals4_dev_ctx->match_ni_handle);
+
+	if (ret != PTL_OK) {
+		GASPI_DEBUG_PRINT_ERROR(
+		    "Failed to initialize Network Interface! Code %d on interface %d",
+		    ret,
+		    iface);
+		PtlNIFini(portals4_dev_ctx->ni_handle);
+		goto err_d;
+	}
+
 	portals4_dev_ctx->max_ptes = ni_req_limits.max_pt_index;
 	portals4_dev_ctx->pte_states =
 	    (int8_t*) calloc(ni_req_limits.max_pt_index, sizeof(int8_t));
@@ -200,27 +216,17 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		portals4_dev_ctx->local_info[i].phys_address = phys_address;
 	}
 
-	ret = PtlEQAlloc(portals4_dev_ctx->ni_handle,
-	                 PORTALS4_EVENT_SLOTS,
-	                 &portals4_dev_ctx->eq_handle);
+	/* ret = PtlEQAlloc(portals4_dev_ctx->ni_handle, */
+	/*                  PORTALS4_EVENT_SLOTS, */
+	/*                  &portals4_dev_ctx->eq_handle); */
 
-	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlEQAlloc failed with %d", ret);
-		_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
-		goto err_r;
-	}
+	/* if (PTL_OK != ret) { */
+	/* 	GASPI_DEBUG_PRINT_ERROR("PtlEQAlloc failed with %d", ret); */
+	/* 	_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc); */
+	/* 	goto err_r; */
+	/* } */
 
-	ret = PtlEQAlloc(portals4_dev_ctx->ni_handle,
-	                 PORTALS4_EVENT_SLOTS,
-	                 &portals4_dev_ctx->passive_snd_eq_handle);
-
-	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlEQAlloc failed with %d", ret);
-		_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
-		goto err_r;
-	}
-
-	ret = PtlEQAlloc(portals4_dev_ctx->ni_handle,
+	ret = PtlEQAlloc(portals4_dev_ctx->match_ni_handle,
 	                 PORTALS4_EVENT_SLOTS,
 	                 &portals4_dev_ctx->passive_rcv_eq_handle);
 
@@ -230,11 +236,40 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		goto err_r;
 	}
 
+	ret = PtlPTAlloc(portals4_dev_ctx->match_ni_handle,
+	                 0,
+	                 portals4_dev_ctx->passive_rcv_eq_handle,
+	                 PORTALS4_ME_PT_INDEX,
+	                 &portals4_dev_ctx->me_pt_index);
+
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
+		_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
+		goto err_r;
+	}
+	/* ret = PtlEQAlloc(portals4_dev_ctx->ni_handle, */
+	/*                  PORTALS4_EVENT_SLOTS, */
+	/*                  &portals4_dev_ctx->passive_rcv_eq_handle); */
+
+	/* if (PTL_OK != ret) { */
+	/* 	GASPI_DEBUG_PRINT_ERROR("PtlEQAlloc failed with %d", ret); */
+	/* 	_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc); */
+	/* 	goto err_r; */
+	/* } */
+
+	ret = PtlCTAlloc(portals4_dev_ctx->match_ni_handle,
+	                 &portals4_dev_ctx->passive_snd_ct_handle);
+
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlCTAlloc failed with %d", ret);
+		_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
+		goto err_r;
+	}
 	ret = PtlCTAlloc(portals4_dev_ctx->ni_handle,
 	                 &portals4_dev_ctx->group_ct_handle);
 
 	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
+		GASPI_DEBUG_PRINT_ERROR("PtlCTAlloc failed with %d", ret);
 		_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
 		goto err_r;
 	}

@@ -22,8 +22,12 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include <portals4.h>
 #include "GPI2_Dev.h"
 
+#define PORTALS4_ME_PT_INDEX 0
+#define PORTALS4_ME_MATCH_BITS 0xDEADBEEF
+#define PORTALS4_ME_IGNORE_BITS 0
 #define PORTALS4_EVENT_SLOTS (1024)
 #define PORTALS4_ACK_TYPE PTL_CT_ACK_REQ
+#define PORTALS4_PASSIVE_ACK_TYPE PTL_ACK_REQ
 
 #ifdef DEBUG
 #define PORTALS4_DEBUG_PRINT_MSG(msg, ...)       \
@@ -43,25 +47,24 @@ typedef struct {
 	ptl_handle_md_t passive_md;
 	ptl_handle_md_t comm_md[GASPI_MAX_QP];
 	ptl_handle_le_t le_handle;
-	ptl_handle_le_t passive_le_handle;
-	ptl_handle_ct_t pt_ct_handle;
 	ptl_pt_index_t  pt_index;
-	ptl_pt_index_t  passive_pt_index;
 } portals4_mr;
 
 struct portals4_ctx_info {
 	ptl_process_t phys_address;
-	ptl_process_t logical_address;
+	ptl_process_t matching_phys_address;
 };
 
 typedef struct {
 	ptl_handle_ni_t ni_handle;
+	ptl_handle_ni_t match_ni_handle;
 	ptl_handle_eq_t eq_handle;
-	ptl_handle_eq_t passive_snd_eq_handle;
 	ptl_handle_eq_t passive_rcv_eq_handle;
 	ptl_handle_ct_t group_ct_handle;
-//	ptl_handle_ct_t passive_ct_handle;
+	ptl_handle_ct_t passive_snd_ct_handle;
 	ptl_handle_ct_t comm_ct_handle[GASPI_MAX_QP];
+	ptl_pt_index_t  me_pt_index; // passive comm matching interface
+	//ptl_handle_me_t me_handle; // passive comm matching interface
 	struct portals4_ctx_info* local_info;
 	struct portals4_ctx_info* remote_info;
 	int8_t *pte_states;
