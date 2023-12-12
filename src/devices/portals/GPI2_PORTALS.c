@@ -216,15 +216,15 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		portals4_dev_ctx->local_info[i].phys_address = phys_address;
 	}
 
-	/* ret = PtlEQAlloc(portals4_dev_ctx->ni_handle, */
-	/*                  PORTALS4_EVENT_SLOTS, */
-	/*                  &portals4_dev_ctx->eq_handle); */
+	ret = PtlEQAlloc(portals4_dev_ctx->match_ni_handle,
+	                 PORTALS4_EVENT_SLOTS,
+	                 &portals4_dev_ctx->eq_handle);
 
-	/* if (PTL_OK != ret) { */
-	/* 	GASPI_DEBUG_PRINT_ERROR("PtlEQAlloc failed with %d", ret); */
-	/* 	_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc); */
-	/* 	goto err_r; */
-	/* } */
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlEQAlloc failed with %d", ret);
+		_pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
+		goto err_r;
+	}
 
 	ret = PtlEQAlloc(portals4_dev_ctx->match_ni_handle,
 	                 PORTALS4_EVENT_SLOTS,
