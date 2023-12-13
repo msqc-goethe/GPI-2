@@ -163,8 +163,6 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 		mr_ptr->group_md = PTL_INVALID_HANDLE;
 		mr_ptr->passive_md = PTL_INVALID_HANDLE;
 		mr_ptr->le_handle = PTL_INVALID_HANDLE;
-		mr_ptr->passive_le_handle = PTL_INVALID_HANDLE;
-		mr_ptr->pt_ct_handle = PTL_INVALID_HANDLE;
 
 		for (i = 0; i < GASPI_MAX_QP; ++i) {
 			mr_ptr->comm_md[i] = PTL_INVALID_HANDLE;
@@ -173,7 +171,7 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 		md.start = seg->data.buf;
 		md.length = seg->size;
 		md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_REPLY |
-		            PTL_MD_EVENT_CT_ACK;
+		            PTL_MD_EVENT_CT_ACK | PTL_MD_VOLATILE;
 		//md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_SEND |
 		//             PTL_MD_EVENT_CT_REPLY | PTL_MD_EVENT_SEND_DISABLE;
 		//md.eq_handle = portals4_dev_ctx->eq_handle;
@@ -243,8 +241,6 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 		mr_ptr->group_md = PTL_INVALID_HANDLE;
 		mr_ptr->passive_md = PTL_INVALID_HANDLE;
 		mr_ptr->le_handle = PTL_INVALID_HANDLE;
-		mr_ptr->passive_le_handle = PTL_INVALID_HANDLE;
-		mr_ptr->pt_ct_handle = PTL_INVALID_HANDLE;
 
 		for (i = 0; i < GASPI_MAX_QP; ++i) {
 			mr_ptr->comm_md[i] = PTL_INVALID_HANDLE;
