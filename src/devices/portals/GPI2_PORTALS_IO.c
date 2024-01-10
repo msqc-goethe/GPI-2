@@ -113,34 +113,45 @@ gaspi_return_t pgaspi_dev_purge(gaspi_context_t* const gctx,
                                 const gaspi_queue_id_t queue,
                                 const gaspi_timeout_t timeout_ms) {
 	int ret;
+	unsigned int which;
 	ptl_ct_event_t ce, nce;
-	int nr = gctx->ne_count_c[queue];
-	const int nnr = nr;
+	const ptl_size_t nr = (ptl_size_t)gctx->ne_count_c[queue];
 	const gaspi_cycles_t s0 = gaspi_get_cycles();
 	gaspi_portals4_ctx* const portals4_dev_ctx =
 	    (gaspi_portals4_ctx*) gctx->device->ctx;
 
 	memset(&nce, 0, sizeof(ptl_ct_event_t));
-	do {
-		ret = PtlCTGet(portals4_dev_ctx->comm_ct_handle[queue], &ce);
-		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret);
-			return GASPI_ERROR;
-		}
+	ret = PtlCTPoll(&portals4_dev_ctx->comm_ct_handle[queue],
+	                &nr,
+	                1,
+	                timeout_ms,
+	                &ce,
+	                &which);
 
-		if (ce.success == 0) {
-			const gaspi_cycles_t s1 = gaspi_get_cycles();
-			const gaspi_cycles_t tdelta = s1 - s0;
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlCTPoll failed with %d", ret);
+		return GASPI_ERROR;
+	}
+	/* do { */
+	/* 	ret = PtlCTGet(portals4_dev_ctx->comm_ct_handle[queue], &ce); */
+	/* 	if (PTL_OK != ret) { */
+	/* 		GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret); */
+	/* 		return GASPI_ERROR; */
+	/* 	} */
 
-			const float ms = (float) tdelta * gctx->cycles_to_msecs;
+	/* 	if (ce.success == 0) { */
+	/* 		const gaspi_cycles_t s1 = gaspi_get_cycles(); */
+	/* 		const gaspi_cycles_t tdelta = s1 - s0; */
 
-			if (ms > timeout_ms) {
-				return GASPI_TIMEOUT;
-			}
-		}
-	} while (ce.success != nnr);
+	/* 		const float ms = (float) tdelta * gctx->cycles_to_msecs; */
 
-	gctx->ne_count_c[queue] -= nnr;
+	/* 		if (ms > timeout_ms) { */
+	/* 			return GASPI_TIMEOUT; */
+	/* 		} */
+	/* 	} */
+	/* } while (ce.success != nnr); */
+
+	gctx->ne_count_c[queue] -= nr;
 	PtlCTSet(portals4_dev_ctx->comm_ct_handle[queue], nce);
 
 	return GASPI_SUCCESS;
@@ -151,37 +162,54 @@ gaspi_return_t pgaspi_dev_wait(gaspi_context_t* const gctx,
                                const gaspi_timeout_t timeout_ms) {
 	int ret;
 	ptl_ct_event_t ce, nce;
-	const int nnr = gctx->ne_count_c[queue];
+	unsigned int which;
+	const ptl_size_t nr = (ptl_size_t)gctx->ne_count_c[queue];
 	const gaspi_cycles_t s0 = gaspi_get_cycles();
 	gaspi_portals4_ctx* const portals4_dev_ctx =
 	    (gaspi_portals4_ctx*) gctx->device->ctx;
 
 	memset(&nce, 0, sizeof(ptl_ct_event_t));
-	do {
-		ret = PtlCTGet(portals4_dev_ctx->comm_ct_handle[queue], &ce);
-		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret);
-			return GASPI_ERROR;
-		}
-		else if (ce.failure > 0) {
-			GASPI_DEBUG_PRINT_ERROR("Comm queue %d might be broken!", queue);
-			return GASPI_ERROR;
-		}
 
-		if (ce.success == 0) {
-			const gaspi_cycles_t s1 = gaspi_get_cycles();
-			const gaspi_cycles_t tdelta = s1 - s0;
+	ret = PtlCTPoll(&portals4_dev_ctx->comm_ct_handle[queue],
+	                &nr,
+	                1,
+	                timeout_ms,
+	                &ce,
+	                &which);
 
-			const float ms = (float) tdelta * gctx->cycles_to_msecs;
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlCTPoll failed with %d", ret);
+		return GASPI_ERROR;
+	}
 
-			if (ms > timeout_ms) {
-				GASPI_DEBUG_PRINT_ERROR("GASPI_TIMEOUT");
-				return GASPI_TIMEOUT;
-			}
-		}
-	} while (ce.success != nnr);
+	/* do { */
+	/* 	ret = PtlCTGet(portals4_dev_ctx->comm_ct_handle[queue], &ce); */
+	/* 	if (PTL_OK != ret) { */
+	/* 		GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret); */
+	/* 		return GASPI_ERROR; */
+	/* 	} */
+	/* 	else if (ce.failure > 0) { */
+	/* 		GASPI_DEBUG_PRINT_ERROR("Comm queue %d might be broken!", queue); */
+	/* 		return GASPI_ERROR; */
+	/* 	} */
 
-	gctx->ne_count_c[queue] -= nnr;
+	/* 	if (ce.success == 0) { */
+	/* 		const gaspi_cycles_t s1 = gaspi_get_cycles(); */
+	/* 		const gaspi_cycles_t tdelta = s1 - s0; */
+
+	/* 		const float ms = (float) tdelta * gctx->cycles_to_msecs; */
+
+	/* 		if (ms > timeout_ms) { */
+	/* 			GASPI_DEBUG_PRINT_ERROR("GASPI_TIMEOUT"); */
+	/* 			return GASPI_TIMEOUT; */
+	/* 		} */
+	/* 	} */
+	/* } while (ce.success != nnr); */
+	if (ce.failure > 0) {
+		GASPI_DEBUG_PRINT_ERROR("Comm queue %d might be broken!", queue);
+		return GASPI_ERROR;
+	}
+	gctx->ne_count_c[queue] -= nr;
 	PtlCTSet(portals4_dev_ctx->comm_ct_handle[queue], nce);
 	return GASPI_SUCCESS;
 }
