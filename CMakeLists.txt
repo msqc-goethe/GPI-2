@@ -8,6 +8,7 @@ option(BUILD_TESTS "Build tests" OFF)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 add_subdirectory(src)
+add_subdirectory(tools)
 
 if(BUILD_TESTS)
   enable_testing()
