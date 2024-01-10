@@ -38,6 +38,7 @@ int ptl_le_factory(gaspi_portals4_ctx* dev,
 	ptl_le_t le;
 	ptl_uid_t uid;
 	ptl_pt_index_t req_pt_index;
+	ptl_event_t event;
 
 	ret = PtlGetUid(dev->ni_handle, &uid);
 
@@ -54,6 +55,7 @@ int ptl_le_factory(gaspi_portals4_ctx* dev,
 			break;
 		}
 	}
+
 	ret = PtlPTAlloc(dev->ni_handle, 0, eq_handle, req_pt_index, pt_index);
 
 	if (PTL_OK != ret) {
@@ -73,6 +75,16 @@ int ptl_le_factory(gaspi_portals4_ctx* dev,
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlLEAppend failed with %d", ret);
 		return ret;
+	}
+
+	PtlEQWait(eq_handle, &event);
+	if (event.type != PTL_EVENT_LINK) {
+		GASPI_DEBUG_PRINT_ERROR("Event type does not match");
+		return GASPI_ERROR;
+	}
+	if (event.ni_fail_type != PTL_NI_OK) {
+		GASPI_DEBUG_PRINT_ERROR("Linking of LE failed");
+		return GASPI_ERROR;
 	}
 	return 0;
 }
@@ -148,7 +160,7 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 	portals4_mr* mr_ptr = NULL;
 
 	le_options = PTL_LE_OP_PUT | PTL_LE_OP_GET | PTL_LE_EVENT_SUCCESS_DISABLE |
-	             PTL_LE_EVENT_LINK_DISABLE | PTL_LE_EVENT_COMM_DISABLE;
+	             PTL_LE_EVENT_COMM_DISABLE | PTL_LE_IS_ACCESSIBLE;
 
 	if (seg->data.buf != NULL) {
 		memset(&md, 0, sizeof(ptl_md_t));
@@ -171,10 +183,7 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 		md.start = seg->data.buf;
 		md.length = seg->size;
 		md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_REPLY |
-		            PTL_MD_EVENT_CT_ACK | PTL_MD_VOLATILE;
-		//md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_SEND |
-		//             PTL_MD_EVENT_CT_REPLY | PTL_MD_EVENT_SEND_DISABLE;
-		//md.eq_handle = portals4_dev_ctx->eq_handle;
+		             PTL_MD_EVENT_CT_ACK | PTL_MD_VOLATILE;
 		md.eq_handle = PTL_EQ_NONE;
 
 		// register MD to group communication counting events
@@ -248,7 +257,7 @@ int pgaspi_dev_register_mem(gaspi_context_t const* const gctx,
 		md.start = seg->notif_spc.buf;
 		md.length = seg->notif_spc_size;
 		md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_REPLY |
-		             PTL_MD_EVENT_CT_ACK;
+		             PTL_MD_EVENT_CT_ACK | PTL_MD_VOLATILE;
 		md.eq_handle = PTL_EQ_NONE;
 		// register MD to group communication counting events
 		md.ct_handle = portals4_dev_ctx->group_ct_handle;
