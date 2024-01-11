@@ -275,8 +275,8 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	ret = PtlNIInit(iface,
 	                PTL_NI_NO_MATCHING | PTL_NI_PHYSICAL,
 	                PTL_PID_ANY,
-	                //&ni_req_limits,
-	                NULL,
+	                &ni_req_limits,
+	                //NULL,
 	                &ni_limits,
 	                &portals4_dev_ctx->ni_handle);
 
@@ -289,10 +289,10 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		return -1;
 	}
 
-	/* if (!_compare_ptl_ni_limits(&ni_req_limits, &ni_limits)) { */
-	/* 	GASPI_DEBUG_PRINT_ERROR("ni limits mismatch"); */
-	/* 	pgaspi_dev_cleanup_core(gctx); */
-	/* } */
+	if (!_compare_ptl_ni_limits(&ni_req_limits, &ni_limits)) {
+		GASPI_DEBUG_PRINT_ERROR("ni limits mismatch");
+		pgaspi_dev_cleanup_core(gctx);
+	}
 
 	portals4_dev_ctx->max_ptes = ni_limits.max_pt_index;
 	portals4_dev_ctx->pte_states =
@@ -370,6 +370,11 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	portals4_dev_ctx->passive_comm.msg_buf =
 	    malloc(gctx->config->passive_transfer_size_max);
 
+	if(portals4_dev_ctx->passive_comm.msg_buf == NULL){
+		GASPI_DEBUG_PRINT_ERROR("Memory allocation failed!");
+		return -1;
+	}
+
 	ptl_le_t passive_le = {
 	    .start = portals4_dev_ctx->passive_comm.msg_buf,
 	    .length = gctx->config->passive_transfer_size_max,
@@ -383,7 +388,7 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	                  &passive_le,
 	                  PTL_PRIORITY_LIST,
 	                  NULL,
-	                  portals4_dev_ctx->passive_comm.le_handle);
+	                  &portals4_dev_ctx->passive_comm.le_handle);
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlLEAppend failded with %d", ret);
 		return GASPI_ERROR;
