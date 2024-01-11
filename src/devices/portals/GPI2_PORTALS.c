@@ -254,29 +254,29 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	}
 
 	// prelim defaults
-	ni_req_limits.max_entries = 4080;
-	ni_req_limits.max_unexpected_headers = 16319;
-	ni_req_limits.max_mds = (2 + GASPI_MAX_QP) * gctx->config->segment_max;
-	ni_req_limits.max_eqs = 16;
-	ni_req_limits.max_cts = 2 + GASPI_MAX_QP;
-	ni_req_limits.max_pt_index =
-	    gctx->config->segment_max; // 256 need, only 255 can be supplied
-	ni_req_limits.max_iovecs = 0;
-	ni_req_limits.max_list_size = 1;
-	ni_req_limits.max_triggered_ops = 1024;
-	ni_req_limits.max_msg_size = gctx->config->transfer_size_max;
-	ni_req_limits.max_atomic_size = 64;
-	ni_req_limits.max_fetch_atomic_size = 64;
-	ni_req_limits.max_waw_ordered_size = 2048;
-	ni_req_limits.max_war_ordered_size = 64;
-	ni_req_limits.max_volatile_size = gctx->config->transfer_size_max;
-	ni_req_limits.features = 0; // PTL_TOTAL_DATA_ORDERING ...
+	/* ni_req_limits.max_entries = 4080; */
+	/* ni_req_limits.max_unexpected_headers = 16319; */
+	/* ni_req_limits.max_mds = (2 + GASPI_MAX_QP) * gctx->config->segment_max; */
+	/* ni_req_limits.max_eqs = 16; */
+	/* ni_req_limits.max_cts = 2 + GASPI_MAX_QP; */
+	/* ni_req_limits.max_pt_index = */
+	/*     gctx->config->segment_max; // 256 need, only 255 can be supplied */
+	/* ni_req_limits.max_iovecs = 0; */
+	/* ni_req_limits.max_list_size = 1; */
+	/* ni_req_limits.max_triggered_ops = 1024; */
+	/* ni_req_limits.max_msg_size = gctx->config->transfer_size_max; */
+	/* ni_req_limits.max_atomic_size = 64; */
+	/* ni_req_limits.max_fetch_atomic_size = 64; */
+	/* ni_req_limits.max_waw_ordered_size = 2048; */
+	/* ni_req_limits.max_war_ordered_size = 64; */
+	/* ni_req_limits.max_volatile_size = gctx->config->transfer_size_max; */
+	/* ni_req_limits.features = 0; // PTL_TOTAL_DATA_ORDERING ... */
 
 	ret = PtlNIInit(iface,
 	                PTL_NI_NO_MATCHING | PTL_NI_PHYSICAL,
 	                PTL_PID_ANY,
-	                &ni_req_limits,
-	                //NULL,
+	                //&ni_req_limits,
+	                NULL,
 	                &ni_limits,
 	                &portals4_dev_ctx->ni_handle);
 
@@ -289,10 +289,10 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		return -1;
 	}
 
-	if (!_compare_ptl_ni_limits(&ni_req_limits, &ni_limits)) {
-		GASPI_DEBUG_PRINT_ERROR("ni limits mismatch");
-		pgaspi_dev_cleanup_core(gctx);
-	}
+	/* if (!_compare_ptl_ni_limits(&ni_req_limits, &ni_limits)) { */
+	/* 	GASPI_DEBUG_PRINT_ERROR("ni limits mismatch"); */
+	/* 	pgaspi_dev_cleanup_core(gctx); */
+	/* } */
 
 	portals4_dev_ctx->max_ptes = ni_limits.max_pt_index;
 	portals4_dev_ctx->pte_states =
