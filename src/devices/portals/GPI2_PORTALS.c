@@ -45,7 +45,7 @@ int _pgaspi_dev_cleanup_core(gaspi_portals4_ctx* const dev, int tnc) {
 			ret = PtlCTFree(dev->comm_ct_handle[i]);
 			if (PTL_OK != ret) {
 				GASPI_DEBUG_PRINT_ERROR("PtlCTFree failed with %d", ret);
-				return -3;
+				return -1;
 			}
 		}
 	}
@@ -94,7 +94,7 @@ int _pgaspi_dev_cleanup_core(gaspi_portals4_ctx* const dev, int tnc) {
 		ret = PtlNIFini(dev->ni_handle);
 		if (PTL_OK != ret) {
 			GASPI_DEBUG_PRINT_ERROR("PtlNIFini failed with %d", ret);
-			return -5;
+			return -1;
 		}
 	}
 
