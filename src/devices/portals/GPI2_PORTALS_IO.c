@@ -132,25 +132,6 @@ gaspi_return_t pgaspi_dev_purge(gaspi_context_t* const gctx,
 		GASPI_DEBUG_PRINT_ERROR("PtlCTPoll failed with %d", ret);
 		return GASPI_ERROR;
 	}
-	/* do { */
-	/* 	ret = PtlCTGet(portals4_dev_ctx->comm_ct_handle[queue], &ce); */
-	/* 	if (PTL_OK != ret) { */
-	/* 		GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret); */
-	/* 		return GASPI_ERROR; */
-	/* 	} */
-
-	/* 	if (ce.success == 0) { */
-	/* 		const gaspi_cycles_t s1 = gaspi_get_cycles(); */
-	/* 		const gaspi_cycles_t tdelta = s1 - s0; */
-
-	/* 		const float ms = (float) tdelta * gctx->cycles_to_msecs; */
-
-	/* 		if (ms > timeout_ms) { */
-	/* 			return GASPI_TIMEOUT; */
-	/* 		} */
-	/* 	} */
-	/* } while (ce.success != nnr); */
-
 	gctx->ne_count_c[queue] -= nr;
 	PtlCTSet(portals4_dev_ctx->comm_ct_handle[queue], nce);
 
@@ -182,29 +163,6 @@ gaspi_return_t pgaspi_dev_wait(gaspi_context_t* const gctx,
 		return GASPI_ERROR;
 	}
 
-	/* do { */
-	/* 	ret = PtlCTGet(portals4_dev_ctx->comm_ct_handle[queue], &ce); */
-	/* 	if (PTL_OK != ret) { */
-	/* 		GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret); */
-	/* 		return GASPI_ERROR; */
-	/* 	} */
-	/* 	else if (ce.failure > 0) { */
-	/* 		GASPI_DEBUG_PRINT_ERROR("Comm queue %d might be broken!", queue); */
-	/* 		return GASPI_ERROR; */
-	/* 	} */
-
-	/* 	if (ce.success == 0) { */
-	/* 		const gaspi_cycles_t s1 = gaspi_get_cycles(); */
-	/* 		const gaspi_cycles_t tdelta = s1 - s0; */
-
-	/* 		const float ms = (float) tdelta * gctx->cycles_to_msecs; */
-
-	/* 		if (ms > timeout_ms) { */
-	/* 			GASPI_DEBUG_PRINT_ERROR("GASPI_TIMEOUT"); */
-	/* 			return GASPI_TIMEOUT; */
-	/* 		} */
-	/* 	} */
-	/* } while (ce.success != nnr); */
 	if (ce.failure > 0) {
 		GASPI_DEBUG_PRINT_ERROR("Comm queue %d might be broken!", queue);
 		return GASPI_ERROR;
@@ -230,6 +188,12 @@ gaspi_return_t pgaspi_dev_write_list(
 
 	if (gctx->ne_count_c[queue] + num > gctx->config->queue_size_max) {
 		return GASPI_QUEUE_FULL;
+	}
+
+	ret = PtlStartBundle(portals4_dev_ctx->ni_handle);
+	if(PTL_OK != ret){
+		GASPI_DEBUG_PRINT_ERROR("PtlBundleStart failed with %d",ret);
+		return GASPI_ERROR;
 	}
 
 	for (i = 0; i < num; ++i) {
@@ -261,6 +225,13 @@ gaspi_return_t pgaspi_dev_write_list(
 			return GASPI_ERROR;
 		}
 	}
+
+	ret = PtlEndBundle(portals4_dev_ctx->ni_handle);
+	if(PTL_OK != ret){
+		GASPI_DEBUG_PRINT_ERROR("PtlEndBundle failed with %d",ret);
+		return GASPI_ERROR;
+	}
+
 	if (num > 0) {
 		gctx->ne_count_c[queue] += num;
 	}
@@ -283,6 +254,12 @@ gaspi_return_t pgaspi_dev_read_list(gaspi_context_t* const gctx,
 
 	if (gctx->ne_count_c[queue] + num > gctx->config->queue_size_max) {
 		return GASPI_QUEUE_FULL;
+	}
+
+	ret = PtlStartBundle(portals4_dev_ctx->ni_handle);
+	if(PTL_OK != ret){
+		GASPI_DEBUG_PRINT_ERROR("PtlBundleStart failed with %d",ret);
+		return GASPI_ERROR;
 	}
 
 	for (i = 0; i < num; ++i) {
@@ -312,6 +289,13 @@ gaspi_return_t pgaspi_dev_read_list(gaspi_context_t* const gctx,
 			return GASPI_ERROR;
 		}
 	}
+
+	ret = PtlEndBundle(portals4_dev_ctx->ni_handle);
+	if(PTL_OK != ret){
+		GASPI_DEBUG_PRINT_ERROR("PtlEndBundle failed with %d",ret);
+		return GASPI_ERROR;
+	}
+
 	if (num > 0) {
 		gctx->ne_count_c[queue] += num;
 	}
@@ -439,7 +423,7 @@ gaspi_return_t pgaspi_dev_write_notify(
 	                      ce.success + 1);
 
 	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlPutTriggered failed with %d", ret);
+		GASPI_DEBUG_PRINT_ERROR("PtlTriggeredPut failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
@@ -533,7 +517,7 @@ gaspi_return_t pgaspi_dev_read_notify(
 	                    ce.success + 1);
 
 	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlGetTriggered failed with %d", ret);
+		GASPI_DEBUG_PRINT_ERROR("PtlTriggeredGet failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
