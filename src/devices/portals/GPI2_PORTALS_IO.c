@@ -115,9 +115,10 @@ gaspi_return_t pgaspi_dev_purge(gaspi_context_t* const gctx,
 	int ret;
 	unsigned int which;
 	ptl_ct_event_t ce;
-	const ptl_size_t nr = (ptl_size_t) gctx->ne_count_c[queue];
 	gaspi_portals4_ctx* const portals4_dev_ctx =
 	    (gaspi_portals4_ctx*) gctx->device->ctx;
+	const ptl_size_t nr = (ptl_size_t) gctx->ne_count_c[queue] +
+	                      portals4_dev_ctx->comm_ct_cnt[queue];
 
 	ret = PtlCTPoll(&portals4_dev_ctx->comm_ct_handle[queue],
 	                &nr,
@@ -130,7 +131,7 @@ gaspi_return_t pgaspi_dev_purge(gaspi_context_t* const gctx,
 		GASPI_DEBUG_PRINT_ERROR("PtlCTPoll failed with %d", ret);
 		return GASPI_ERROR;
 	}
-	gctx->ne_count_c[queue] -= nr;
+	gctx->ne_count_c[queue] = 0;
 	portals4_dev_ctx->comm_ct_cnt[queue] = ce.success;
 	return GASPI_SUCCESS;
 }
@@ -141,10 +142,10 @@ gaspi_return_t pgaspi_dev_wait(gaspi_context_t* const gctx,
 	int ret;
 	ptl_ct_event_t ce;
 	unsigned int which;
-	const ptl_size_t nr = (ptl_size_t) gctx->ne_count_c[queue];
-	const gaspi_cycles_t s0 = gaspi_get_cycles();
 	gaspi_portals4_ctx* const portals4_dev_ctx =
 	    (gaspi_portals4_ctx*) gctx->device->ctx;
+	const ptl_size_t nr = (ptl_size_t) gctx->ne_count_c[queue] +
+	                      portals4_dev_ctx->comm_ct_cnt[queue];
 
 	ret = PtlCTPoll(&portals4_dev_ctx->comm_ct_handle[queue],
 	                &nr,
@@ -162,7 +163,7 @@ gaspi_return_t pgaspi_dev_wait(gaspi_context_t* const gctx,
 		GASPI_DEBUG_PRINT_ERROR("Comm queue %d might be broken!", queue);
 		return GASPI_ERROR;
 	}
-	gctx->ne_count_c[queue] -= nr;
+	gctx->ne_count_c[queue] = 0;
 	portals4_dev_ctx->comm_ct_cnt[queue] = ce.success;
 	return GASPI_SUCCESS;
 }
