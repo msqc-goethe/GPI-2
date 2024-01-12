@@ -45,11 +45,14 @@ typedef struct {
 	ptl_handle_eq_t eq_handle;
 	ptl_handle_ct_t group_ct_handle;
 	ptl_handle_ct_t comm_ct_handle[GASPI_MAX_QP];
+	ptl_size_t group_ct_cnt;
+	ptl_size_t comm_ct_cnt[GASPI_MAX_QP];
 	struct {
 		ptl_handle_eq_t eq_handle;
 		ptl_handle_ct_t ct_handle;
 		ptl_handle_le_t le_handle;
 		ptl_pt_index_t pt_index;
+		ptl_size_t ct_cnt;
 		unsigned char* msg_buf;
 	} passive_comm;
 	struct portals4_ctx_info* local_info;

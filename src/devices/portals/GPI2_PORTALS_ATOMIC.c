@@ -26,7 +26,7 @@ gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
                                            const gaspi_atomic_value_t val_add) {
 	int ret;
 	int nnr;
-	ptl_ct_event_t ce, nce;
+	ptl_ct_event_t ce;
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 	portals4_mr* const local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[0];
 
@@ -35,8 +35,6 @@ gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
 
 	gaspi_atomic_value_t* val_arr = (gaspi_atomic_value_t*) gctx->nsrc.data.buf;
 	val_arr[1] = val_add;
-
-	memset(&nce, 0, sizeof(ptl_ct_event_t));
 
 	ret = PtlFetchAtomic(local_mr_ptr->group_md,
 	                     0,
@@ -61,29 +59,22 @@ gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
 	gctx->ne_count_grp++;
 	nnr = gctx->ne_count_grp;
 
-	// TODO: A timeout should be really used here
-	do {
-		ret = PtlCTGet(portals4_dev_ctx->group_ct_handle, &ce);
-
-		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret);
-			return GASPI_ERROR;
-		}
-
-		if (ce.failure > 0) {
-			GASPI_DEBUG_PRINT_ERROR("atomic channel might be broken");
-			return GASPI_ERROR;
-		}
-	} while (ce.success != nnr);
-
-	ret = PtlCTSet(portals4_dev_ctx->group_ct_handle, nce);
+	ret = PtlCTWait(portals4_dev_ctx->group_ct_handle,
+	                portals4_dev_ctx->group_ct_cnt + nnr,
+	                &ce);
 
 	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlCTSet failed with %d", ret);
+		GASPI_DEBUG_PRINT_ERROR("PtlCTWait failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
-	gctx->ne_count_grp = 0;
+	if (ce.failure > 0) {
+		GASPI_DEBUG_PRINT_ERROR("atomic channel might be broken");
+		return GASPI_ERROR;
+	}
+
+	gctx->ne_count_grp -= nnr;
+	portals4_dev_ctx->group_ct_cnt = ce.success;
 
 	return GASPI_SUCCESS;
 }
@@ -97,7 +88,7 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
     const gaspi_atomic_value_t val_new) {
 	int ret;
 	int nnr;
-	ptl_ct_event_t ce, nce;
+	ptl_ct_event_t ce;
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 	portals4_mr* const local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[0];
 	const ptl_pt_index_t target_pt_index =
@@ -105,8 +96,6 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
 
 	gaspi_atomic_value_t* val_arr = (gaspi_atomic_value_t*) gctx->nsrc.data.buf;
 	val_arr[1] = val_new;
-
-	memset(&nce, 0, sizeof(ptl_ct_event_t));
 
 	ret = PtlSwap(local_mr_ptr->group_md,
 	              0,
@@ -132,28 +121,21 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
 	gctx->ne_count_grp++;
 	nnr = gctx->ne_count_grp;
 
-	do {
-		ret = PtlCTGet(portals4_dev_ctx->group_ct_handle, &ce);
-
-		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret);
-			return GASPI_ERROR;
-		}
-
-		if (ce.failure > 0) {
-			GASPI_DEBUG_PRINT_ERROR("atomic queue might be broken");
-			return GASPI_ERROR;
-		}
-	} while (ce.success != nnr);
-
-	ret = PtlCTSet(portals4_dev_ctx->group_ct_handle, nce);
+	ret = PtlCTWait(portals4_dev_ctx->group_ct_handle,
+	                portals4_dev_ctx->group_ct_cnt + nnr,
+	                &ce);
 
 	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlCTSet failed with %d", ret);
+		GASPI_DEBUG_PRINT_ERROR("PtlCTWait failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
-	gctx->ne_count_grp = 0;
+	if (ce.failure > 0) {
+		GASPI_DEBUG_PRINT_ERROR("atomic queue might be broken");
+		return GASPI_ERROR;
+	}
+	gctx->ne_count_grp -= nnr;
+	portals4_dev_ctx->group_ct_cnt = ce.success;
 
 	return GASPI_SUCCESS;
 }

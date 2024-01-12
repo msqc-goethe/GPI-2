@@ -644,12 +644,7 @@ gaspi_return_t pgaspi_barrier(const gaspi_group_t g,
      theoretically it is possible for the queue to become broken
      e.g. with a small, user-defined queue size and a large number of
      ranks. */
-	// Actually, I observed some problems
-#ifdef GPI2_DEVICE_PORTALS
-	const int pret = pgaspi_dev_poll_groups(gctx, timeout_ms);
-#else
 	const int pret = pgaspi_dev_poll_groups(gctx);
-#endif
 
 	if (pret < 0) {
 		unlock_gaspi(&grp_ctx->gl);
@@ -948,11 +943,8 @@ L3:
 			                           sizeof(unsigned long));
 		}
 	}
-#ifdef GPI2_DEVICE_PORTALS
-	const int pret = pgaspi_dev_poll_groups(gctx, timeout_ms);
-#else
+
 	const int pret = pgaspi_dev_poll_groups(gctx);
-#endif
 
 	if (pret < 0) {
 		return GASPI_ERR_DEVICE;

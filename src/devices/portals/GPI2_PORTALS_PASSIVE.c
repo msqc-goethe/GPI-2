@@ -32,16 +32,9 @@ gaspi_return_t pgaspi_dev_passive_send(
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 	portals4_mr* local_mr_ptr =
 	    (portals4_mr*) gctx->rrmd[segment_id_local][gctx->rank].mr[0];
-	ptl_ct_event_t ce, nce;
+	ptl_ct_event_t ce;
 
-	ret = PtlCTGet(portals4_dev_ctx->passive_comm.ct_handle, &ce);
-
-	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret);
-		return GASPI_ERROR;
-	}
-
-	const ptl_size_t nnr = ce.success + 1;
+	const ptl_size_t nnr = portals4_dev_ctx->passive_comm.ct_cnt + 1;
 
 	if (gctx->ne_count_p[byte_id] & bit_cmp) {
 		goto checkL;
@@ -79,8 +72,8 @@ checkL:
 		return GASPI_ERROR;
 	}
 
-	PtlCTSet(portals4_dev_ctx->passive_comm.ct_handle, nce);
 	gctx->ne_count_p[byte_id] &= (~bit_cmp);
+	portals4_dev_ctx->passive_comm.ct_cnt = ce.success;
 	return GASPI_SUCCESS;
 }
 

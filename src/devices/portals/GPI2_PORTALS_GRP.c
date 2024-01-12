@@ -24,48 +24,19 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include "GPI2_PORTALS.h"
 
 /* Group utilities */
-int pgaspi_dev_poll_groups(gaspi_context_t* const gctx,
-                           const gaspi_timeout_t timeout_ms) {
+int pgaspi_dev_poll_groups(gaspi_context_t* const gctx) {
 	int ret;
-	unsigned int which;
-	ptl_ct_event_t ce, nct;
-	const gaspi_cycles_t s0 = gaspi_get_cycles();
+	ptl_ct_event_t ce;
 	const ptl_size_t nr = gctx->ne_count_grp;
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
-	memset(&nct, 0, sizeof(ptl_ct_event_t));
 
-	ret = PtlCTPoll(
-	    &portals4_dev_ctx->group_ct_handle, &nr, 1, timeout_ms, &ce, &which);
-
+	ret = PtlCTWait(portals4_dev_ctx->group_ct_handle,
+	                portals4_dev_ctx->group_ct_cnt + nr,
+	                &ce);
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlCTPoll failed with %d", ret);
 		return GASPI_ERROR;
 	}
-
-	/* do { */
-	/* 	ret = PtlCTGet(portals4_dev_ctx->group_ct_handle, &ce); */
-
-	/* 	if (PTL_OK != ret) { */
-	/* 		GASPI_DEBUG_PRINT_ERROR("PtlCTGet failed with %d", ret); */
-	/* 		return GASPI_ERROR; */
-	/* 	} */
-
-	/* 	if (ce.failure > 0) { */
-	/* 		GASPI_DEBUG_PRINT_ERROR("Collectives queue might be broken"); */
-	/* 		return GASPI_ERROR; */
-	/* 	} */
-
-	/* 	if (ce.success == 0) { */
-	/* 		const gaspi_cycles_t s1 = gaspi_get_cycles(); */
-	/* 		const gaspi_cycles_t tdelta = s1 - s0; */
-
-	/* 		const float ms = (float) tdelta * gctx->cycles_to_msecs; */
-
-	/* 		if (ms > timeout_ms) { */
-	/* 			return GASPI_TIMEOUT; */
-	/* 		} */
-	/* 	} */
-	/* } while (ce.success != nnr); */
 
 	if (ce.failure > 0) {
 		GASPI_DEBUG_PRINT_ERROR(
@@ -73,14 +44,7 @@ int pgaspi_dev_poll_groups(gaspi_context_t* const gctx,
 		return GASPI_ERROR;
 	}
 	gctx->ne_count_grp -= nr;
-
-	if (gctx->ne_count_grp != 0) {
-		GASPI_DEBUG_PRINT_ERROR("group count error, count is %d",
-		                        gctx->ne_count_grp);
-		return -1;
-	}
-
-	PtlCTSet(portals4_dev_ctx->group_ct_handle, nct);
+	portals4_dev_ctx->group_ct_cnt = ce.success;
 	return nr;
 }
 

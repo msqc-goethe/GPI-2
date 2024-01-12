@@ -237,9 +237,12 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	portals4_dev_ctx->remote_info = NULL;
 	portals4_dev_ctx->pte_states = NULL;
 	portals4_dev_ctx->max_ptes = 0;
+	portals4_dev_ctx->group_ct_cnt = 0;
+	portals4_dev_ctx->passive_comm.ct_cnt = 0;
 
 	for (i = 0; i < GASPI_MAX_QP; ++i) {
 		portals4_dev_ctx->comm_ct_handle[i] = PTL_INVALID_HANDLE;
+		portals4_dev_ctx->comm_ct_cnt[i] = 0;
 	}
 
 	iface = gctx->config->dev_config.params.bxi.iface;

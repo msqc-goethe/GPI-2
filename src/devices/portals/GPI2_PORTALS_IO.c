@@ -114,13 +114,11 @@ gaspi_return_t pgaspi_dev_purge(gaspi_context_t* const gctx,
                                 const gaspi_timeout_t timeout_ms) {
 	int ret;
 	unsigned int which;
-	ptl_ct_event_t ce, nce;
-	const ptl_size_t nr = (ptl_size_t)gctx->ne_count_c[queue];
-	const gaspi_cycles_t s0 = gaspi_get_cycles();
+	ptl_ct_event_t ce;
+	const ptl_size_t nr = (ptl_size_t) gctx->ne_count_c[queue];
 	gaspi_portals4_ctx* const portals4_dev_ctx =
 	    (gaspi_portals4_ctx*) gctx->device->ctx;
 
-	memset(&nce, 0, sizeof(ptl_ct_event_t));
 	ret = PtlCTPoll(&portals4_dev_ctx->comm_ct_handle[queue],
 	                &nr,
 	                1,
@@ -133,8 +131,7 @@ gaspi_return_t pgaspi_dev_purge(gaspi_context_t* const gctx,
 		return GASPI_ERROR;
 	}
 	gctx->ne_count_c[queue] -= nr;
-	PtlCTSet(portals4_dev_ctx->comm_ct_handle[queue], nce);
-
+	portals4_dev_ctx->comm_ct_cnt[queue] = ce.success;
 	return GASPI_SUCCESS;
 }
 
@@ -142,14 +139,12 @@ gaspi_return_t pgaspi_dev_wait(gaspi_context_t* const gctx,
                                const gaspi_queue_id_t queue,
                                const gaspi_timeout_t timeout_ms) {
 	int ret;
-	ptl_ct_event_t ce, nce;
+	ptl_ct_event_t ce;
 	unsigned int which;
-	const ptl_size_t nr = (ptl_size_t)gctx->ne_count_c[queue];
+	const ptl_size_t nr = (ptl_size_t) gctx->ne_count_c[queue];
 	const gaspi_cycles_t s0 = gaspi_get_cycles();
 	gaspi_portals4_ctx* const portals4_dev_ctx =
 	    (gaspi_portals4_ctx*) gctx->device->ctx;
-
-	memset(&nce, 0, sizeof(ptl_ct_event_t));
 
 	ret = PtlCTPoll(&portals4_dev_ctx->comm_ct_handle[queue],
 	                &nr,
@@ -168,7 +163,7 @@ gaspi_return_t pgaspi_dev_wait(gaspi_context_t* const gctx,
 		return GASPI_ERROR;
 	}
 	gctx->ne_count_c[queue] -= nr;
-	PtlCTSet(portals4_dev_ctx->comm_ct_handle[queue], nce);
+	portals4_dev_ctx->comm_ct_cnt[queue] = ce.success;
 	return GASPI_SUCCESS;
 }
 
@@ -191,8 +186,8 @@ gaspi_return_t pgaspi_dev_write_list(
 	}
 
 	ret = PtlStartBundle(portals4_dev_ctx->ni_handle);
-	if(PTL_OK != ret){
-		GASPI_DEBUG_PRINT_ERROR("PtlBundleStart failed with %d",ret);
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlBundleStart failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
@@ -227,8 +222,8 @@ gaspi_return_t pgaspi_dev_write_list(
 	}
 
 	ret = PtlEndBundle(portals4_dev_ctx->ni_handle);
-	if(PTL_OK != ret){
-		GASPI_DEBUG_PRINT_ERROR("PtlEndBundle failed with %d",ret);
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlEndBundle failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
@@ -257,8 +252,8 @@ gaspi_return_t pgaspi_dev_read_list(gaspi_context_t* const gctx,
 	}
 
 	ret = PtlStartBundle(portals4_dev_ctx->ni_handle);
-	if(PTL_OK != ret){
-		GASPI_DEBUG_PRINT_ERROR("PtlBundleStart failed with %d",ret);
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlBundleStart failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
@@ -291,8 +286,8 @@ gaspi_return_t pgaspi_dev_read_list(gaspi_context_t* const gctx,
 	}
 
 	ret = PtlEndBundle(portals4_dev_ctx->ni_handle);
-	if(PTL_OK != ret){
-		GASPI_DEBUG_PRINT_ERROR("PtlEndBundle failed with %d",ret);
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlEndBundle failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
