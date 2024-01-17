@@ -54,13 +54,15 @@ gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
 		GASPI_DEBUG_PRINT_ERROR("PtlFetchAtomic failed with %d", ret);
 		return GASPI_ERROR;
 	}
-	// the number of events to add to ne_count_grp depends on the flags
-	// used for the md
-	gctx->ne_count_grp++;
-	nnr = gctx->ne_count_grp;
+
+	ret = PtlAtomicSync();
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlAtomicSync failed with %d", ret);
+		return GASPI_ERROR;
+	}
 
 	ret = PtlCTWait(portals4_dev_ctx->group_ct_handle,
-	                portals4_dev_ctx->group_ct_cnt + nnr,
+	                portals4_dev_ctx->group_ct_cnt + 1,
 	                &ce);
 
 	if (PTL_OK != ret) {
@@ -72,8 +74,6 @@ gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
 		GASPI_DEBUG_PRINT_ERROR("atomic channel might be broken");
 		return GASPI_ERROR;
 	}
-
-	gctx->ne_count_grp -= nnr;
 	portals4_dev_ctx->group_ct_cnt = ce.success;
 
 	return GASPI_SUCCESS;
@@ -87,7 +87,6 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
     const gaspi_atomic_value_t comparator,
     const gaspi_atomic_value_t val_new) {
 	int ret;
-	int nnr;
 	ptl_ct_event_t ce;
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 	portals4_mr* const local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[0];
@@ -116,13 +115,15 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
 		GASPI_DEBUG_PRINT_ERROR("PtlFetchAtomic failed with %d", ret);
 		return GASPI_ERROR;
 	}
-	// the number of events to add to ne_count_grp depends on the flags
-	// used for the md
-	gctx->ne_count_grp++;
-	nnr = gctx->ne_count_grp;
+
+	ret = PtlAtomicSync();
+	if (PTL_OK != ret) {
+		GASPI_DEBUG_PRINT_ERROR("PtlAtomicSync failed with %d", ret);
+		return GASPI_ERROR;
+	}
 
 	ret = PtlCTWait(portals4_dev_ctx->group_ct_handle,
-	                portals4_dev_ctx->group_ct_cnt + nnr,
+	                portals4_dev_ctx->group_ct_cnt + 1,
 	                &ce);
 
 	if (PTL_OK != ret) {
@@ -134,7 +135,6 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
 		GASPI_DEBUG_PRINT_ERROR("atomic queue might be broken");
 		return GASPI_ERROR;
 	}
-	gctx->ne_count_grp -= nnr;
 	portals4_dev_ctx->group_ct_cnt = ce.success;
 
 	return GASPI_SUCCESS;
