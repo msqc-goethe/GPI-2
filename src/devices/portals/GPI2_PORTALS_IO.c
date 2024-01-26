@@ -432,7 +432,7 @@ gaspi_return_t pgaspi_dev_write_list_notify(
 	int ret;
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 
-	if (gctx->ne_count_c[queue] + 2 == gctx->config->queue_size_max) {
+	if (gctx->ne_count_c[queue] + num + 1 == gctx->config->queue_size_max) {
 		return GASPI_QUEUE_FULL;
 	}
 	ret = PtlStartBundle(portals4_dev_ctx->ni_handle);
@@ -472,13 +472,12 @@ gaspi_return_t pgaspi_dev_write_list_notify(
 			return GASPI_ERROR;
 		}
 	}
-
+	
 	ret = PtlEndBundle(portals4_dev_ctx->ni_handle);
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlEndBundle failed with %d", ret);
 		return GASPI_ERROR;
 	}
-
 	((gaspi_notification_t*) gctx->nsrc.notif_spc.buf)[notification_id] =
 	    notification_value;
 	const ptl_pt_index_t target_notify_pt_index =
@@ -591,7 +590,7 @@ gaspi_return_t pgaspi_dev_read_list_notify(
 	int ret;
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 
-	if (gctx->ne_count_c[queue] + num > gctx->config->queue_size_max) {
+	if (gctx->ne_count_c[queue] + num + 1 > gctx->config->queue_size_max) {
 		return GASPI_QUEUE_FULL;
 	}
 
