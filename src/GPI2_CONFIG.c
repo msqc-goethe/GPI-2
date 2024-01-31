@@ -53,7 +53,7 @@ gaspi_config_t glb_gaspi_cfg = {
       }}},
     GASPI_IB, //network type
 #elif GPI2_DEVICE_PORTALS
-    {GASPI_BXI,
+    {GASPI_PORTALS4,
      {{
           //ib struct
           -1, //netdev
@@ -61,14 +61,14 @@ gaspi_config_t glb_gaspi_cfg = {
           1, //port check
       },
       {
-          //bxi struct
-          PTL_IFACE_DEFAULT //iface change this to PTL_IFACE_DEFAULT?
+          //portals4 struct
+          PTL_IFACE_DEFAULT
       },
       {
           //tcp struct
           0 //port to use
       }}},
-    GASPI_BXI,
+    GASPI_PORTALS4,
 #else
     {GASPI_ETHERNET,
      {{
@@ -153,7 +153,7 @@ gaspi_return_t pgaspi_config_set(const gaspi_config_t nconf) {
 	    nconf.dev_config.params.ib.port_check;
 	if (nconf.network != GASPI_IB)
 #elif GPI2_DEVICE_PORTALS
-	if (nconf.network != GASPI_BXI)
+	if (nconf.network != GASPI_PORTALS4)
 #elif GPI2_DEVICE_TCP
 	if (nconf.network != GASPI_ETHERNET)
 #endif
@@ -164,7 +164,7 @@ gaspi_return_t pgaspi_config_set(const gaspi_config_t nconf) {
 		                                   [GASPI_ETHERNET] = "GASPI_ETHERNET",
 		                                   [GASPI_GEMINI] = "GASPI_GEMINI",
 		                                   [GASPI_ARIES] = "GASPI_ARIES",
-		                                   [GASPI_BXI] = "GASPI_BXI"};
+		                                   [GASPI_PORTALS4] = "GASPI_PORTALS4"};
 #endif
 		GASPI_DEBUG_PRINT_ERROR("Invalid value for parameter network (%s)",
 		                        gaspi_network_str[nconf.network]);

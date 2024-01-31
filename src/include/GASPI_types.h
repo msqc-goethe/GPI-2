@@ -139,7 +139,7 @@ typedef enum {
 	GASPI_ETHERNET = 2, /* Ethernet (TCP) */
 	GASPI_GEMINI = 3, /* Cray Gemini (not implemented) */
 	GASPI_ARIES = 4, /* Cray Aries (not implemented) */
-	GASPI_BXI = 5 /* BXI */
+	GASPI_PORTALS4 = 5 /* PORTALS4 */
 } gaspi_network_t;
 
 /**
@@ -157,8 +157,8 @@ typedef struct {
 		} ib;
 
 		struct {
-			gaspi_int iface; /* Interface is the only parameter needed for BXI? */
-		} bxi;
+			gaspi_int iface;
+		} portals4;
 
 		struct {
 			/* The first port to use (default 19000).  */
