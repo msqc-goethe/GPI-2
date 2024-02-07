@@ -69,7 +69,7 @@ checkL:
 
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlCTPoll failed with %d", ret);
-		return GASPI_ERROR;
+		return ret == PTL_EQ_EMPTY ? GASPI_TIMEOUT : GASPI_ERROR;
 	}
 
 	gctx->ne_count_p[byte_id] &= (~bit_cmp);
@@ -101,7 +101,7 @@ gaspi_return_t pgaspi_dev_passive_receive(
 
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlEQPoll failed with %d", ret);
-		return GASPI_ERROR;
+		return ret == PTL_EQ_EMPTY ? GASPI_TIMEOUT : GASPI_ERROR;
 	}
 
 	if (PTL_NI_OK != event.ni_fail_type) {
