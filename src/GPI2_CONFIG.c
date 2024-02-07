@@ -22,9 +22,17 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include <portals4.h>	
 #endif
 #define GASPI_MAX_GROUPS (32)
+#ifdef GPI2_DEVICE_PORTALS
+#define GASPI_MAX_MSEGS (55)
+#else
 #define GASPI_MAX_MSEGS (255)
+#endif
 #define GASPI_MAX_QSIZE (4096)
+#ifdef GPI2_DEVICE_PORTALS
+#define GASPI_MAX_TSIZE_C (1ul << 16ul)
+#else
 #define GASPI_MAX_TSIZE_C (1ul << 30ul)
+#endif
 #define GASPI_MAX_TSIZE_P ((1ul << 16ul) - 1ul)
 #define GASPI_DEFAULT_QSIZE (1024)
 #define GASPI_DEFAULT_ALLREDUCE_ELEM_MAX 255
