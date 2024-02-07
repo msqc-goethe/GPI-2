@@ -42,6 +42,10 @@ gaspi_return_t pgaspi_dev_write(gaspi_context_t* const gctx,
 	        ->pt_index;
 
 	if (gctx->ne_count_c[queue] == gctx->config->queue_size_max) {
+		GASPI_DEBUG_PRINT_ERROR(
+		    "pgaspi_dev_write GASPI_QUEUE_FULL is: %d max: %d",
+		    gctx->ne_count_c[queue],
+		    gctx->config->queue_size_max);
 		return GASPI_QUEUE_FULL;
 	}
 
@@ -57,7 +61,7 @@ gaspi_return_t pgaspi_dev_write(gaspi_context_t* const gctx,
 	             0);
 
 	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlPut failed with %d", ret);
+		GASPI_DEBUG_PRINT_ERROR("PtlPut failed with %d for size %d", ret, size);
 		return GASPI_ERROR;
 	}
 
@@ -87,6 +91,10 @@ gaspi_return_t pgaspi_dev_read(gaspi_context_t* const gctx,
 	        ->pt_index;
 
 	if (gctx->ne_count_c[queue] == gctx->config->queue_size_max) {
+		GASPI_DEBUG_PRINT_ERROR(
+		    "pgaspi_dev_read GASPI_QUEUE_FULL is: %d max: %d",
+		    gctx->ne_count_c[queue],
+		    gctx->config->queue_size_max);
 		return GASPI_QUEUE_FULL;
 	}
 
@@ -100,7 +108,7 @@ gaspi_return_t pgaspi_dev_read(gaspi_context_t* const gctx,
 	             NULL);
 
 	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlGet failed with %d", ret);
+		GASPI_DEBUG_PRINT_ERROR("PtlGet failed with %d for size %d", ret, size);
 		return GASPI_ERROR;
 	}
 
@@ -129,7 +137,7 @@ gaspi_return_t pgaspi_dev_purge(gaspi_context_t* const gctx,
 
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlCTPoll failed with %d", ret);
-		return GASPI_ERROR;
+		return ret == PTL_CT_NONE_REACHED ? GASPI_TIMEOUT : GASPI_ERROR;
 	}
 	gctx->ne_count_c[queue] = 0;
 	portals4_dev_ctx->comm_ct_cnt[queue] = ce.success;
@@ -156,7 +164,7 @@ gaspi_return_t pgaspi_dev_wait(gaspi_context_t* const gctx,
 
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlCTPoll failed with %d", ret);
-		return GASPI_ERROR;
+		return ret == PTL_CT_NONE_REACHED ? GASPI_TIMEOUT : GASPI_ERROR;
 	}
 
 	if (ce.failure > 0) {
@@ -182,6 +190,10 @@ gaspi_return_t pgaspi_dev_write_list(
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 
 	if (gctx->ne_count_c[queue] + num > gctx->config->queue_size_max) {
+		GASPI_DEBUG_PRINT_ERROR(
+		    "pgaspi_dev_write_list GASPI_QUEUE_FULL is: %d max: %d",
+		    gctx->ne_count_c[queue],
+		    gctx->config->queue_size_max);
 		return GASPI_QUEUE_FULL;
 	}
 
@@ -247,6 +259,10 @@ gaspi_return_t pgaspi_dev_read_list(gaspi_context_t* const gctx,
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 
 	if (gctx->ne_count_c[queue] + num > gctx->config->queue_size_max) {
+		GASPI_DEBUG_PRINT_ERROR(
+		    "pgaspi_dev_read_list GASPI_QUEUE_FULL is: %d max: %d",
+		    gctx->ne_count_c[queue],
+		    gctx->config->queue_size_max);
 		return GASPI_QUEUE_FULL;
 	}
 
@@ -315,6 +331,9 @@ gaspi_return_t pgaspi_dev_notify(gaspi_context_t* const gctx,
 	        ->pt_index;
 
 	if (gctx->ne_count_c[queue] == gctx->config->queue_size_max) {
+		GASPI_DEBUG_PRINT_ERROR("pgaspi_dev_ GASPI_QUEUE_FULL is: %d max: %d",
+		                        gctx->ne_count_c[queue],
+		                        gctx->config->queue_size_max);
 		return GASPI_QUEUE_FULL;
 	}
 
@@ -371,7 +390,11 @@ gaspi_return_t pgaspi_dev_write_notify(
 	portals4_mr* remote_mr_ptr =
 	    (portals4_mr*) gctx->rrmd[segment_id_remote][gctx->rank].mr[0];
 
-	if (gctx->ne_count_c[queue] + 2 == gctx->config->queue_size_max) {
+	if (gctx->ne_count_c[queue] + 2 > gctx->config->queue_size_max) {
+		GASPI_DEBUG_PRINT_ERROR(
+		    "pgaspi_dev_write_notify GASPI_QUEUE_FULL is: %d max: %d",
+		    gctx->ne_count_c[queue],
+		    gctx->config->queue_size_max);
 		return GASPI_QUEUE_FULL;
 	}
 
@@ -432,7 +455,11 @@ gaspi_return_t pgaspi_dev_write_list_notify(
 	int ret;
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 
-	if (gctx->ne_count_c[queue] + num + 1 == gctx->config->queue_size_max) {
+	if (gctx->ne_count_c[queue] + num + 1 > gctx->config->queue_size_max) {
+		GASPI_DEBUG_PRINT_ERROR(
+		    "pgaspi_dev_write_list_notify GASPI_QUEUE_FULL is: %d max: %d",
+		    gctx->ne_count_c[queue],
+		    gctx->config->queue_size_max);
 		return GASPI_QUEUE_FULL;
 	}
 	ret = PtlStartBundle(portals4_dev_ctx->ni_handle);
@@ -472,7 +499,7 @@ gaspi_return_t pgaspi_dev_write_list_notify(
 			return GASPI_ERROR;
 		}
 	}
-	
+
 	ret = PtlEndBundle(portals4_dev_ctx->ni_handle);
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("PtlEndBundle failed with %d", ret);
@@ -536,7 +563,11 @@ gaspi_return_t pgaspi_dev_read_notify(
 	portals4_mr const* remote_mr_ptr =
 	    (portals4_mr*) gctx->rrmd[segment_id_remote][gctx->rank].mr[0];
 
-	if (gctx->ne_count_c[queue] + 2 == gctx->config->queue_size_max) {
+	if (gctx->ne_count_c[queue] + 2 > gctx->config->queue_size_max) {
+		GASPI_DEBUG_PRINT_ERROR(
+		    "pgaspi_dev_read_notify GASPI_QUEUE_FULL is: %d max: %d",
+		    gctx->ne_count_c[queue],
+		    gctx->config->queue_size_max);
 		return GASPI_QUEUE_FULL;
 	}
 
@@ -554,8 +585,8 @@ gaspi_return_t pgaspi_dev_read_notify(
 		return GASPI_ERROR;
 	}
 
-	local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[1];
-
+	local_mr_ptr =
+	    (portals4_mr*) gctx->rrmd[segment_id_local][gctx->rank].mr[1];
 	ret = PtlGet(local_mr_ptr->comm_md[queue],
 	             notification_id * sizeof(gaspi_notification_t),
 	             sizeof(gaspi_notification_t),
@@ -591,6 +622,10 @@ gaspi_return_t pgaspi_dev_read_list_notify(
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 
 	if (gctx->ne_count_c[queue] + num + 1 > gctx->config->queue_size_max) {
+		GASPI_DEBUG_PRINT_ERROR(
+		    "pgaspi_dev_read_list_notify GASPI_QUEUE_FULL is: %d max: %d",
+		    gctx->ne_count_c[queue],
+		    gctx->config->queue_size_max);
 		return GASPI_QUEUE_FULL;
 	}
 
@@ -637,7 +672,8 @@ gaspi_return_t pgaspi_dev_read_list_notify(
 	const ptl_pt_index_t target_notify_pt_index =
 	    ((portals4_mr*) (gctx->rrmd[segment_id_notification][gctx->rank].mr[1]))
 	        ->pt_index;
-	local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[1];
+	local_mr_ptr =
+	    (portals4_mr*) gctx->rrmd[segment_id_notification][gctx->rank].mr[1];
 
 	ret = PtlGet(local_mr_ptr->comm_md[queue],
 	             notification_id * sizeof(gaspi_notification_t),
