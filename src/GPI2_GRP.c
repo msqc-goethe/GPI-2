@@ -115,6 +115,9 @@ static gaspi_return_t pgaspi_alloc_group_comm_mem(
 	memset(group_ctx->rrcd[gctx->rank].data.buf, 0, size);
 
 	group_ctx->rrcd[gctx->rank].size = size;
+#ifdef GPI2_DEVICE_PORTALS
+	group_ctx->rrcd[gctx->rank].mem_kind = GRP_MEM;
+#endif
 
 	if (pgaspi_dev_register_mem(gctx, &(group_ctx->rrcd[gctx->rank])) !=
 	    GASPI_SUCCESS) {

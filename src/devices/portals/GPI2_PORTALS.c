@@ -291,17 +291,17 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		return -1;
 	}
 
-	if (ni_req_limits.max_atomic_size < sizeof(gaspi_atomic_value_t)) {
+	if (ni_limits.max_atomic_size < sizeof(gaspi_atomic_value_t)) {
 		GASPI_DEBUG_PRINT_ERROR("Bad atomic size!");
 		return -1;
 	}
 
-	if (ni_req_limits.max_fetch_atomic_size < sizeof(gaspi_atomic_value_t)) {
+	if (ni_limits.max_fetch_atomic_size < sizeof(gaspi_atomic_value_t)) {
 		GASPI_DEBUG_PRINT_ERROR("Bad atomic fetch size!");
 		return -1;
 	}
 
-	if (ni_req_limits.max_msg_size < gctx->config->transfer_size_max) {
+	if (ni_limits.max_msg_size < gctx->config->transfer_size_max) {
 		GASPI_DEBUG_PRINT_ERROR("Bad msg size!");
 		return -1;
 	}

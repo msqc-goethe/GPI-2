@@ -234,6 +234,9 @@ static inline int pgaspi_segment_alloc_maybe(
 	myrank_mseg->size = size;
 	myrank_mseg->notif_spc_size = NOTIFICATIONS_SPACE_SIZE;
 	myrank_mseg->trans = 1;
+#ifdef GPI2_DEVICE_PORTALS
+	myrank_mseg->mem_kind = DATA_MEM;
+#endif
 
 	if (pgaspi_dev_register_mem(gctx, myrank_mseg) < 0) {
 		free(myrank_mseg->notif_spc.ptr);

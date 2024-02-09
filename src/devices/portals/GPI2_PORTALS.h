@@ -26,11 +26,15 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #define PORTALS4_ACK_TYPE PTL_CT_ACK_REQ
 #define PORTALS4_PASSIVE_ACK_TYPE PTL_ACK_REQ
 
+#define DATA_SEG(offset)(NOTIFICATIONS_SPACE_SIZE + offset)
+
 enum pt_states { PT_FREE = 0, PT_ALLOCATED = 1 };
 
 typedef struct {
 	ptl_handle_md_t group_md;
 	ptl_handle_md_t passive_md;
+	ptl_handle_md_t atomic_md;
+	ptl_handle_md_t notify_md[GASPI_MAX_QP];
 	ptl_handle_md_t comm_md[GASPI_MAX_QP];
 	ptl_handle_le_t le_handle;
 	ptl_pt_index_t pt_index;

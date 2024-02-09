@@ -23,7 +23,7 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #endif
 #define GASPI_MAX_GROUPS (32)
 #ifdef GPI2_DEVICE_PORTALS
-#define GASPI_MAX_MSEGS (55)
+#define GASPI_MAX_MSEGS (255)
 #else
 #define GASPI_MAX_MSEGS (255)
 #endif

@@ -29,22 +29,21 @@ gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
 	ptl_ct_event_t ce;
 	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
 	portals4_mr* const local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[0];
-
 	const ptl_pt_index_t target_pt_index =
 	    ((portals4_mr*) (gctx->rrmd[segment_id][gctx->rank].mr[0]))->pt_index;
 
 	gaspi_atomic_value_t* val_arr = (gaspi_atomic_value_t*) gctx->nsrc.data.buf;
 	val_arr[1] = val_add;
 
-	ret = PtlFetchAtomic(local_mr_ptr->group_md,
+	ret = PtlFetchAtomic(local_mr_ptr->atomic_md,
 	                     0,
-	                     local_mr_ptr->group_md,
+	                     local_mr_ptr->atomic_md,
 	                     sizeof(gaspi_atomic_value_t),
 	                     sizeof(gaspi_atomic_value_t),
 	                     portals4_dev_ctx->remote_info[rank].phys_address,
 	                     target_pt_index,
 	                     0,
-	                     offset,
+	                     DATA_SEG(offset),
 	                     NULL,
 	                     0,
 	                     PTL_SUM,
@@ -96,15 +95,15 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
 	gaspi_atomic_value_t* val_arr = (gaspi_atomic_value_t*) gctx->nsrc.data.buf;
 	val_arr[1] = val_new;
 
-	ret = PtlSwap(local_mr_ptr->group_md,
+	ret = PtlSwap(local_mr_ptr->atomic_md,
 	              0,
-	              local_mr_ptr->group_md,
+	              local_mr_ptr->atomic_md,
 	              sizeof(gaspi_atomic_value_t),
 	              sizeof(gaspi_atomic_value_t),
 	              portals4_dev_ctx->remote_info[rank].phys_address,
 	              target_pt_index,
 	              0,
-	              offset,
+	              DATA_SEG(offset),
 	              NULL,
 	              0,
 	              &comparator,

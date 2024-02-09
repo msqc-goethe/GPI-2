@@ -43,7 +43,7 @@ gaspi_return_t pgaspi_dev_passive_send(
 	gctx->ne_count_p[byte_id] |= bit_cmp;
 
 	ret = PtlPut(local_mr_ptr->passive_md,
-	             offset_local,
+	             DATA_SEG(offset_local),
 	             size,
 	             PORTALS4_PASSIVE_ACK_TYPE,
 	             portals4_dev_ctx->remote_info[rank].phys_address,

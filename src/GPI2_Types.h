@@ -48,6 +48,8 @@ typedef struct {
 	char dummy[63];
 } gaspi_lock_t;
 
+typedef enum { NSRC_MEM = 1, GRP_MEM, DATA_MEM } memory_kind_t;
+
 typedef struct {
 	union {
 		unsigned char* buf;
@@ -65,6 +67,10 @@ typedef struct {
 
 #ifdef GPI2_DEVICE_IB
 	unsigned int rkey[2];
+#endif
+
+#ifdef GPI2_DEVICE_PORTALS
+	memory_kind_t mem_kind;
 #endif
 
 	unsigned long size;

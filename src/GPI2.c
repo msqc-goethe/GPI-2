@@ -159,6 +159,7 @@ static gaspi_return_t pgaspi_init_core(gaspi_context_t* const gctx) {
 	memset(gctx->nsrc.data.buf, 0, size);
 #ifdef GPI2_DEVICE_PORTALS
 	gctx->nsrc.size = 2 * sizeof(gaspi_atomic_value_t);
+	gctx->nsrc.mem_kind = NSRC_MEM;
 #else
 	gctx->nsrc.size = sizeof(gaspi_atomic_value_t);
 #endif
