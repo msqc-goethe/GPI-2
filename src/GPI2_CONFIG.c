@@ -29,7 +29,7 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #endif
 #define GASPI_MAX_QSIZE (4096)
 #ifdef GPI2_DEVICE_PORTALS
-#define GASPI_MAX_TSIZE_C (1ul << 16ul)
+#define GASPI_MAX_TSIZE_C (1ul << 26ul)
 #else
 #define GASPI_MAX_TSIZE_C (1ul << 30ul)
 #endif
