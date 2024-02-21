@@ -326,7 +326,7 @@ gaspi_return_t pgaspi_dev_notify(gaspi_context_t* const gctx,
 	// the needed pt index for the target list. We have to use the local rank as the
 	// second index since mr data structures are not exchanged among all ranks.
 	const ptl_pt_index_t target_pt_index =
-	    ((portals4_mr*) (gctx->rrmd[segment_id_remote][gctx->rank].mr[1]))
+	    ((portals4_mr*) (gctx->rrmd[segment_id_remote][gctx->rank].mr[0]))
 	        ->pt_index;
 
 	if (gctx->ne_count_c[queue] == gctx->config->queue_size_max) {
