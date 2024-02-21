@@ -452,22 +452,114 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	return 0;
 }
 
-int pgaspi_dev_comm_queue_delete(
-    gaspi_context_t const* const GASPI_UNUSED(gctx),
-    const unsigned int GASPI_UNUSED(id)) {
+int pgaspi_dev_comm_queue_delete(gaspi_context_t const* const gctx,
+                                 const unsigned int id) {
+
+	gaspi_portals4_ctx* const portals4_dev_ctx =
+	    (gaspi_portals4_ctx*) gctx->device->ctx;
+	portals4_mr* mr = NULL;
+	int ret = PTL_OK;
+	for (int i = 0; i < gctx->config->segment_max; ++i) {
+		if (gctx->rrmd[i] != NULL) {
+			for (int u = 0; u < 2; ++u) {
+				mr = gctx->rrmd[i][gctx->rank].mr[u];
+				if (mr != NULL) {
+					if (!PtlHandleIsEqual(mr->comm_md[id],
+					                      PTL_INVALID_HANDLE)) {
+						ret = PtlMDRelease(mr->comm_md[id]);
+						if (ret != PTL_OK) {
+							return GASPI_ERROR;
+						}
+						mr->comm_md[id] = PTL_INVALID_HANDLE;
+					}
+				}
+			}
+		}
+	}
+
+	mr = gctx->nsrc.mr[1];
+	if (!PtlHandleIsEqual(mr->notify_md[id], PTL_INVALID_HANDLE)) {
+		ret = PtlMDRelease(mr->notify_md[id]);
+		if (ret != PTL_OK) {
+			return GASPI_ERROR;
+		}
+		mr->notify_md[id] = PTL_INVALID_HANDLE;
+	}
+	if (!PtlHandleIsEqual(portals4_dev_ctx->comm_ct_handle[id],
+	                      PTL_INVALID_HANDLE)) {
+		ret = PtlCTFree(portals4_dev_ctx->comm_ct_handle[id]);
+		if (ret != PTL_OK) {
+			return GASPI_ERROR;
+		}
+		portals4_dev_ctx->comm_ct_handle[id] = PTL_INVALID_HANDLE;
+	}
 	return 0;
 }
 
 int pgaspi_dev_comm_queue_create(
-    gaspi_context_t const* const GASPI_UNUSED(gctx),
-    const unsigned int GASPI_UNUSED(id),
+    gaspi_context_t const* const gctx,
+    const unsigned int id,
     const unsigned short GASPI_UNUSED(remote_node)) {
+	gaspi_portals4_ctx* const portals4_dev_ctx =
+	    (gaspi_portals4_ctx*) gctx->device->ctx;
+	portals4_mr* mr = NULL;
+	int ret = PTL_OK;
+	ptl_md_t md;
+
+	if (PtlHandleIsEqual(portals4_dev_ctx->comm_ct_handle[id],
+	                     PTL_INVALID_HANDLE)) {
+		ret = PtlCTAlloc(portals4_dev_ctx->ni_handle,
+		                 &portals4_dev_ctx->comm_ct_handle[id]);
+		if (ret != PTL_OK) {
+			return GASPI_ERROR;
+		}
+	}
+
+	md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_REPLY |
+	             PTL_MD_EVENT_CT_ACK | PTL_MD_VOLATILE;
+	md.eq_handle = PTL_EQ_NONE;
+	md.ct_handle = portals4_dev_ctx->comm_ct_handle[id];
+
+	for (int i = 0; i < gctx->config->segment_max; ++i) {
+		if (gctx->rrmd[i] != NULL) {
+			md.start = gctx->rrmd[i][gctx->rank].notif_spc.buf;
+			md.length =
+			    gctx->rrmd[i][gctx->rank].size + NOTIFICATIONS_SPACE_SIZE;
+			for (int u = 0; u < 2; ++u) {
+				mr = gctx->rrmd[i][gctx->rank].mr[u];
+				if (mr != NULL) {
+					ret = PtlMDBind(
+					    portals4_dev_ctx->ni_handle, &md, mr->comm_md[id]);
+					if (ret != PTL_OK) {
+						return GASPI_ERROR;
+					}
+				}
+			}
+		}
+	}
+
+	mr = gctx->nsrc.mr[1];
+	md.start = gctx->nsrc.notif_spc.buf;
+	md.length = gctx->nsrc.notif_spc_size;
+
+	if (PtlHandleIsEqual(mr->notify_md[id], PTL_INVALID_HANDLE)) {
+		ret = PtlMDBind(portals4_dev_ctx->ni_handle, &md, &mr->notify_md[id]);
+		if (ret != PTL_OK) {
+			return GASPI_ERROR;
+		}
+	}
 	return 0;
 }
 
-int pgaspi_dev_comm_queue_is_valid(
-    gaspi_context_t const* const GASPI_UNUSED(gctx),
-    const unsigned int GASPI_UNUSED(id)) {
+int pgaspi_dev_comm_queue_is_valid(gaspi_context_t const* const gctx,
+                                   const unsigned int id) {
+	gaspi_portals4_ctx* const portals4_dev_ctx =
+	    (gaspi_portals4_ctx*) gctx->device->ctx;
+
+	if (PtlHandleIsEqual(portals4_dev_ctx->comm_ct_handle[id],
+	                     PTL_INVALID_HANDLE)) {
+		return GASPI_ERR_INV_QUEUE;
+	}
 	return 0;
 }
 

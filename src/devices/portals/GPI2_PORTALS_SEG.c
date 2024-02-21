@@ -123,7 +123,7 @@ int _pgaspi_dev_unregister_mem(gaspi_context_t const* const gctx,
 				}
 			}
 
-			for (u = 0; u < gctx->config->queue_num; ++u) {
+			for (u = 0; u < gctx->num_queues; ++u) {
 				if (!PtlHandleIsEqual(mr_ptr->comm_md[u], PTL_INVALID_HANDLE)) {
 					ret = PtlMDRelease(mr_ptr->comm_md[u]);
 					if (PTL_OK != ret) {
@@ -185,7 +185,7 @@ int register_nsrc_mem(gaspi_context_t const* const gctx, gaspi_rc_mseg_t* seg) {
 		mr_ptr->atomic_md = PTL_INVALID_HANDLE;
 		mr_ptr->le_handle = PTL_INVALID_HANDLE;
 
-		for (int i = 0; i < gctx->config->queue_num; ++i) {
+		for (int i = 0; i < GASPI_MAX_QP; ++i) {
 			mr_ptr->comm_md[i] = PTL_INVALID_HANDLE;
 			mr_ptr->notify_md[i] = PTL_INVALID_HANDLE;
 		}
@@ -221,7 +221,7 @@ int register_nsrc_mem(gaspi_context_t const* const gctx, gaspi_rc_mseg_t* seg) {
 		mr_ptr->passive_md = PTL_INVALID_HANDLE;
 		mr_ptr->le_handle = PTL_INVALID_HANDLE;
 
-		for (int i = 0; i < gctx->config->queue_num; ++i) {
+		for (int i = 0; i < GASPI_MAX_QP; ++i) {
 			mr_ptr->comm_md[i] = PTL_INVALID_HANDLE;
 			mr_ptr->notify_md[i] = PTL_INVALID_HANDLE;
 		}
@@ -234,7 +234,7 @@ int register_nsrc_mem(gaspi_context_t const* const gctx, gaspi_rc_mseg_t* seg) {
 		    .eq_handle = PTL_EQ_NONE,
 		};
 
-		for (int i = 0; i < gctx->config->queue_num; ++i) {
+		for (int i = 0; i < gctx->num_queues; ++i) {
 			md.ct_handle = portals4_dev_ctx->comm_ct_handle[i];
 			ret = PtlMDBind(
 			    portals4_dev_ctx->ni_handle, &md, &mr_ptr->notify_md[i]);
@@ -267,7 +267,7 @@ int register_grp_mem(gaspi_context_t const* const gctx, gaspi_rc_mseg_t* seg) {
 	mr_ptr->passive_md = PTL_INVALID_HANDLE;
 	mr_ptr->le_handle = PTL_INVALID_HANDLE;
 
-	for (int i = 0; i < gctx->config->queue_num; ++i) {
+	for (int i = 0; i < GASPI_MAX_QP; ++i) {
 		mr_ptr->comm_md[i] = PTL_INVALID_HANDLE;
 		mr_ptr->notify_md[i] = PTL_INVALID_HANDLE;
 	}
@@ -324,7 +324,7 @@ int register_data_mem(gaspi_context_t const* const gctx, gaspi_rc_mseg_t* seg) {
 	mr_ptr->passive_md = PTL_INVALID_HANDLE;
 	mr_ptr->le_handle = PTL_INVALID_HANDLE;
 
-	for (int i = 0; i < gctx->config->queue_num; ++i) {
+	for (int i = 0; i < GASPI_MAX_QP; ++i) {
 		mr_ptr->comm_md[i] = PTL_INVALID_HANDLE;
 		mr_ptr->notify_md[i] = PTL_INVALID_HANDLE;
 	}
@@ -348,7 +348,7 @@ int register_data_mem(gaspi_context_t const* const gctx, gaspi_rc_mseg_t* seg) {
 	}
 
 	// register MD for one-sided communication counting events
-	for (int i = 0; i < gctx->config->queue_num; ++i) {
+	for (int i = 0; i < gctx->num_queues; ++i) {
 		md.ct_handle = portals4_dev_ctx->comm_ct_handle[i];
 		ret = PtlMDBind(portals4_dev_ctx->ni_handle, &md, &mr_ptr->comm_md[i]);
 		if (PTL_OK != ret) {
@@ -366,8 +366,6 @@ int register_data_mem(gaspi_context_t const* const gctx, gaspi_rc_mseg_t* seg) {
 	                     &mr_ptr->pt_index,
 	                     portals4_dev_ctx->eq_handle,
 	                     PTL_CT_NONE);
-	//GASPI_DEBUG_PRINT_ERROR("LE: %lu-%lu",seg->notif_spc.buf,seg->notif_spc.buf + seg->size+NOTIFICATIONS_SPACE_SIZE);
-	//GASPI_DEBUG_PRINT_ERROR("DATA Seg size: %lu",seg->size);
 	if (PTL_OK != ret) {
 		GASPI_DEBUG_PRINT_ERROR("ptl_le_factory failed with %d", ret);
 		_pgaspi_dev_unregister_mem(gctx, seg);
