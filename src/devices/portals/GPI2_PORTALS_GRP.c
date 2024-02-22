@@ -28,12 +28,10 @@ int pgaspi_dev_poll_groups(gaspi_context_t* const gctx) {
 	int ret;
 	ptl_ct_event_t ce;
 	const ptl_size_t nr = gctx->ne_count_grp;
-	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
+	gaspi_portals4_ctx* const dev = gctx->device->ctx;
 
-	ret = PtlCTWait(portals4_dev_ctx->group_ct_handle,
-	                portals4_dev_ctx->group_ct_cnt + nr,
-	                &ce);
-	if (PTL_OK != ret) {
+	ret = PtlCTWait(dev->group_atomic_ct_h, dev->group_atomic_ct_cnt + nr, &ce);
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlCTPoll failed with %d", ret);
 		return GASPI_ERROR;
 	}
@@ -44,7 +42,7 @@ int pgaspi_dev_poll_groups(gaspi_context_t* const gctx) {
 		return GASPI_ERROR;
 	}
 	gctx->ne_count_grp -= nr;
-	portals4_dev_ctx->group_ct_cnt = ce.success;
+	dev->group_atomic_ct_cnt = ce.success;
 	return nr;
 }
 
@@ -55,29 +53,20 @@ int pgaspi_dev_post_group_write(gaspi_context_t* const gctx,
                                 void* remote_addr,
                                 unsigned char group) {
 	int ret;
-	gaspi_portals4_ctx* const portals4_dev_ctx =
-	    (gaspi_portals4_ctx*) gctx->device->ctx;
-	ptl_handle_md_t md =
-	    ((portals4_mr*) gctx->groups[group].rrcd[gctx->rank].mr[0])->group_md;
-	ptl_pt_index_t pt_index =
-	    ((portals4_mr*) gctx->groups[group].rrcd[gctx->rank].mr[0])->pt_index;
-	ptl_size_t local_offset = (unsigned long) local_addr -
-	                          gctx->groups[group].rrcd[gctx->rank].data.addr;
-	ptl_size_t remote_offset =
-	    (unsigned long) remote_addr - gctx->groups[group].rrcd[dst].data.addr;
+	gaspi_portals4_ctx* const dev = (gaspi_portals4_ctx*) gctx->device->ctx;
 
-	ret = PtlPut(md,
-	             local_offset,
+	ret = PtlPut(dev->group_atomic_md_h,
+	             (ptl_size_t) local_addr,
 	             length,
 	             PORTALS4_ACK_TYPE,
-	             portals4_dev_ctx->remote_info[dst].phys_address,
-	             pt_index,
+	             dev->remote_info[dst].phys_address,
+	             dev->data_pt_idx,
 	             0,
-	             remote_offset,
+	             (ptl_size_t) remote_addr,
 	             NULL,
 	             0);
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlPut failed with %d", ret);
 		return -1;
 	}

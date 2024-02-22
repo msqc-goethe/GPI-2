@@ -29,12 +29,12 @@ gaspi_return_t pgaspi_dev_passive_send(
 	const int byte_id = rank >> 3;
 	const int bit_pos = rank - (byte_id * 8);
 	const unsigned char bit_cmp = 1 << bit_pos;
-	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
-	portals4_mr* local_mr_ptr =
-	    (portals4_mr*) gctx->rrmd[segment_id_local][gctx->rank].mr[0];
+	gaspi_portals4_ctx * const dev = gctx->device->ctx;
+	const ptl_size_t local_offset =
+	    gctx->rrmd[segment_id_local][gctx->rank].data.addr + offset_local;
 	ptl_ct_event_t ce;
 
-	const ptl_size_t nnr = portals4_dev_ctx->passive_comm.ct_cnt + 1;
+	const ptl_size_t nnr = dev->passive_comm_ct_cnt + 1;
 
 	if (gctx->ne_count_p[byte_id] & bit_cmp) {
 		goto checkL;
@@ -42,38 +42,34 @@ gaspi_return_t pgaspi_dev_passive_send(
 
 	gctx->ne_count_p[byte_id] |= bit_cmp;
 
-	ret = PtlPut(local_mr_ptr->passive_md,
-	             DATA_SEG(offset_local),
+	ret = PtlPut(dev->passive_comm_md_h,
+	             local_offset,
 	             size,
 	             PORTALS4_PASSIVE_ACK_TYPE,
-	             portals4_dev_ctx->remote_info[rank].phys_address,
-	             portals4_dev_ctx->passive_comm.pt_index,
+	             dev->remote_info[rank].phys_address,
+	             dev->passive_comm_pt_idx,
 	             0,
 	             0,
 	             NULL,
 	             0);
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlPut failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
 checkL:
 	unsigned int ce_index;
-	ret = PtlCTPoll(&portals4_dev_ctx->passive_comm.ct_handle,
-	                &nnr,
-	                1,
-	                timeout_ms,
-	                &ce,
-	                &ce_index);
+	ret =
+	    PtlCTPoll(&dev->passive_comm_ct_h, &nnr, 1, timeout_ms, &ce, &ce_index);
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlCTPoll failed with %d", ret);
 		return ret == PTL_EQ_EMPTY ? GASPI_TIMEOUT : GASPI_ERROR;
 	}
 
 	gctx->ne_count_p[byte_id] &= (~bit_cmp);
-	portals4_dev_ctx->passive_comm.ct_cnt = ce.success;
+	dev->passive_comm_ct_cnt = ce.success;
 	return GASPI_SUCCESS;
 }
 
@@ -86,20 +82,14 @@ gaspi_return_t pgaspi_dev_passive_receive(
     const gaspi_timeout_t timeout_ms) {
 	ptl_handle_me_t me_handle;
 	int ret;
-	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
-	portals4_mr* local_mr_ptr =
-	    (portals4_mr*) gctx->rrmd[segment_id_local][gctx->rank].mr[0];
-
+	gaspi_portals4_ctx * const dev = gctx->device->ctx;
 	ptl_event_t event;
 	unsigned int event_index;
 
-	ret = PtlEQPoll(&portals4_dev_ctx->passive_comm.eq_handle,
-	                1,
-	                timeout_ms,
-	                &event,
-	                &event_index);
+	ret =
+	    PtlEQPoll(&dev->passive_comm_eq_h, 1, timeout_ms, &event, &event_index);
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlEQPoll failed with %d", ret);
 		return ret == PTL_EQ_EMPTY ? GASPI_TIMEOUT : GASPI_ERROR;
 	}
@@ -112,7 +102,7 @@ gaspi_return_t pgaspi_dev_passive_receive(
 
 	*rank = 0xffff;
 	for (int i = 0; i < gctx->tnc; ++i) {
-		ptl_process_t initiator = portals4_dev_ctx->remote_info[i].phys_address;
+		ptl_process_t initiator = dev->remote_info[i].phys_address;
 		if (event.initiator.phys.nid == initiator.phys.nid &&
 		    event.initiator.phys.pid == initiator.phys.pid) {
 			*rank = i;

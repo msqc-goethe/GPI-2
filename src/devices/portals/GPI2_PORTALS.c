@@ -29,179 +29,6 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include "GPI2_Dev.h"
 #include "GPI2_PORTALS.h"
 
-int _pgaspi_dev_cleanup_core(gaspi_portals4_ctx* const dev, int tnc) {
-	int ret, i;
-
-	if (!PtlHandleIsEqual(dev->group_ct_handle, PTL_INVALID_HANDLE)) {
-		ret = PtlCTFree(dev->group_ct_handle);
-		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlCTFree failed with %d", ret);
-			return -1;
-		}
-	}
-
-	for (i = 0; i < GASPI_MAX_QP; ++i) {
-		if (!PtlHandleIsEqual(dev->comm_ct_handle[i], PTL_INVALID_HANDLE)) {
-			ret = PtlCTFree(dev->comm_ct_handle[i]);
-			if (PTL_OK != ret) {
-				GASPI_DEBUG_PRINT_ERROR("PtlCTFree failed with %d", ret);
-				return -1;
-			}
-		}
-	}
-
-	if (!PtlHandleIsEqual(dev->eq_handle, PTL_INVALID_HANDLE)) {
-		ret = PtlEQFree(dev->eq_handle);
-		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlEQFree failed with %d", ret);
-			return -1;
-		}
-	}
-
-	if (!PtlHandleIsEqual(dev->passive_comm.le_handle, PTL_INVALID_HANDLE)) {
-		ret = PtlLEUnlink(dev->passive_comm.le_handle);
-		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlLEUnlink failed with %d", ret);
-			return -1;
-		}
-	}
-	if (dev->pte_states[0] == PT_ALLOCATED) {
-		ret = PtlPTFree(dev->ni_handle, dev->passive_comm.pt_index);
-		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlPTFree failed with %d", ret);
-			return -1;
-		}
-		dev->pte_states[0] = PT_FREE;
-	}
-
-	if (!PtlHandleIsEqual(dev->passive_comm.ct_handle, PTL_INVALID_HANDLE)) {
-		ret = PtlCTFree(dev->passive_comm.ct_handle);
-		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlCTFree failed with %d", ret);
-			return -1;
-		}
-	}
-
-	if (!PtlHandleIsEqual(dev->passive_comm.eq_handle, PTL_INVALID_HANDLE)) {
-		ret = PtlEQFree(dev->passive_comm.eq_handle);
-		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlEQFree failed with %d", ret);
-			return -1;
-		}
-	}
-
-	if (!PtlHandleIsEqual(dev->ni_handle, PTL_INVALID_HANDLE)) {
-		ret = PtlNIFini(dev->ni_handle);
-		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlNIFini failed with %d", ret);
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
-int _compare_ptl_ni_limits(ptl_ni_limits_t* const lhs,
-                           ptl_ni_limits_t* const rhs) {
-	if (lhs->max_entries != rhs->max_entries) {
-		GASPI_DEBUG_PRINT_ERROR("max_entries mismatch! lhs: %d rhs: %d",
-		                        lhs->max_entries,
-		                        rhs->max_entries);
-		return 0;
-	}
-	if (lhs->max_unexpected_headers != rhs->max_unexpected_headers) {
-		GASPI_DEBUG_PRINT_ERROR(
-		    "max_unexpected_headers mismatch! lhs: %d rhs: %d",
-		    lhs->max_unexpected_headers,
-		    rhs->max_unexpected_headers);
-		return 0;
-	}
-	if (lhs->max_mds != rhs->max_mds) {
-		GASPI_DEBUG_PRINT_ERROR(
-		    "max_mds mismatch! lhs: %d rhs: %d", lhs->max_mds, rhs->max_mds);
-		return 0;
-	}
-	if (lhs->max_eqs != rhs->max_eqs) {
-		GASPI_DEBUG_PRINT_ERROR(
-		    "max_eqs mismatch! lhs: %d rhs: %d", lhs->max_eqs, rhs->max_eqs);
-		return 0;
-	}
-	if (lhs->max_cts != rhs->max_cts) {
-		GASPI_DEBUG_PRINT_ERROR(
-		    "max_cts mismatch! lhs: %d rhs: %d", lhs->max_cts, rhs->max_cts);
-		return 0;
-	}
-	if (lhs->max_pt_index != rhs->max_pt_index) {
-		GASPI_DEBUG_PRINT_ERROR("max_pt_index mismatch! lhs: %d rhs: %d",
-		                        lhs->max_pt_index,
-		                        rhs->max_pt_index);
-		return 0;
-	}
-	if (lhs->max_iovecs != rhs->max_iovecs) {
-		GASPI_DEBUG_PRINT_ERROR("max_iovec mismatch! lhs: %d rhs: %d",
-		                        lhs->max_iovecs,
-		                        rhs->max_iovecs);
-		return 0;
-	}
-	if (lhs->max_list_size != rhs->max_list_size) {
-		GASPI_DEBUG_PRINT_ERROR("max_list_size mismatch! lhs: %d rhs: %d",
-		                        lhs->max_list_size,
-		                        rhs->max_list_size);
-		return 0;
-	}
-	if (lhs->max_triggered_ops != rhs->max_triggered_ops) {
-		GASPI_DEBUG_PRINT_ERROR(
-		    "max_triggered_ops mismatch! lhs: %d rhs: %d",
-		    lhs->max_triggered_ops != rhs->max_triggered_ops);
-		return 0;
-	}
-	if (lhs->max_msg_size != rhs->max_msg_size) {
-		GASPI_DEBUG_PRINT_ERROR("max_msg_size mismatch! lhs: %d rhs: %d",
-		                        lhs->max_msg_size,
-		                        rhs->max_msg_size);
-		return 0;
-	}
-	if (lhs->max_atomic_size != rhs->max_atomic_size) {
-		GASPI_DEBUG_PRINT_ERROR("max_atomic_size mismatch! lhs: %d rhs: %d",
-		                        lhs->max_atomic_size,
-		                        rhs->max_atomic_size);
-		return 0;
-	}
-	if (lhs->max_fetch_atomic_size != rhs->max_fetch_atomic_size) {
-		GASPI_DEBUG_PRINT_ERROR(
-		    "max_fetch_atomic_size mismatch! lhs: %d rhs: %d",
-		    lhs->max_fetch_atomic_size,
-		    rhs->max_fetch_atomic_size);
-		return 0;
-	}
-	if (lhs->max_waw_ordered_size != rhs->max_waw_ordered_size) {
-		GASPI_DEBUG_PRINT_ERROR(
-		    "max_waw_ordered_size mismatch! lhs: %d rhs: %d",
-		    lhs->max_waw_ordered_size,
-		    rhs->max_waw_ordered_size);
-		return 0;
-	}
-	if (lhs->max_war_ordered_size != rhs->max_war_ordered_size) {
-		GASPI_DEBUG_PRINT_ERROR(
-		    "max_war_ordered_size mismatch! lhs: %d rhs: %d",
-		    lhs->max_war_ordered_size,
-		    rhs->max_war_ordered_size);
-		return 0;
-	}
-	if (lhs->max_volatile_size != rhs->max_volatile_size) {
-		GASPI_DEBUG_PRINT_ERROR("max_volatile_size! lhs: %d rhs: %d",
-		                        lhs->max_volatile_size,
-		                        rhs->max_volatile_size);
-		return 0;
-	}
-	if (lhs->features != rhs->features) {
-		GASPI_DEBUG_PRINT_ERROR(
-		    "features! lhs: %d rhs: %d", lhs->features, rhs->features);
-		return 0;
-	}
-	return 1;
-}
-
 int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	int ret, i;
 	ptl_ni_limits_t ni_req_limits;
@@ -212,48 +39,48 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	gctx->device = calloc(1, sizeof(gctx->device));
 	if (gctx->device == NULL) {
 		GASPI_DEBUG_PRINT_ERROR("Device allocation failed");
-		return -1;
+		return GASPI_ERROR;
 	}
 
 	gctx->device->ctx = calloc(1, sizeof(gaspi_portals4_ctx));
 	if (gctx->device->ctx == NULL) {
 		GASPI_DEBUG_PRINT_ERROR("Device ctx allocation failed");
 		free(gctx->device);
-		return -1;
+		return GASPI_ERROR;
 	}
 
 	gaspi_portals4_ctx* const portals4_dev_ctx =
 	    (gaspi_portals4_ctx*) gctx->device->ctx;
 
-	portals4_dev_ctx->ni_handle = PTL_INVALID_HANDLE;
-	portals4_dev_ctx->eq_handle = PTL_INVALID_HANDLE;
-	portals4_dev_ctx->group_ct_handle = PTL_INVALID_HANDLE;
-	portals4_dev_ctx->passive_comm.eq_handle = PTL_INVALID_HANDLE;
-	portals4_dev_ctx->passive_comm.ct_handle = PTL_INVALID_HANDLE;
-	portals4_dev_ctx->passive_comm.le_handle = PTL_INVALID_HANDLE;
-	portals4_dev_ctx->passive_comm.pt_index = PTL_PT_ANY;
-	portals4_dev_ctx->passive_comm.msg_buf = NULL;
+	portals4_dev_ctx->ni_h = PTL_INVALID_HANDLE;
+	portals4_dev_ctx->eq_h = PTL_INVALID_HANDLE;
+	portals4_dev_ctx->group_atomic_ct_h = PTL_INVALID_HANDLE;
+	portals4_dev_ctx->passive_comm_eq_h = PTL_INVALID_HANDLE;
+	portals4_dev_ctx->passive_comm_ct_h = PTL_INVALID_HANDLE;
+	portals4_dev_ctx->passive_comm_le_h = PTL_INVALID_HANDLE;
+	portals4_dev_ctx->passive_comm_pt_idx = PTL_PT_ANY;
+	portals4_dev_ctx->data_le_h = PTL_INVALID_HANDLE;
+	portals4_dev_ctx->data_pt_idx = PTL_PT_ANY;
 	portals4_dev_ctx->local_info = NULL;
 	portals4_dev_ctx->remote_info = NULL;
-	portals4_dev_ctx->pte_states = NULL;
-	portals4_dev_ctx->max_ptes = 0;
-	portals4_dev_ctx->group_ct_cnt = 0;
-	portals4_dev_ctx->passive_comm.ct_cnt = 0;
+	portals4_dev_ctx->passive_comm_msg_buf = NULL;
+	portals4_dev_ctx->group_atomic_ct_cnt = 0;
+	portals4_dev_ctx->passive_comm_ct_cnt = 0;
 
 	for (i = 0; i < GASPI_MAX_QP; ++i) {
-		portals4_dev_ctx->comm_ct_handle[i] = PTL_INVALID_HANDLE;
-		portals4_dev_ctx->comm_ct_cnt[i] = 0;
+		portals4_dev_ctx->comm_notif_ct_h[i] = PTL_INVALID_HANDLE;
+		portals4_dev_ctx->comm_notif_ct_cnt[i] = 0;
 	}
 
 	iface = gctx->config->dev_config.params.portals4.iface;
 
 	ret = PtlInit();
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("Failed to initialize Portls library!");
 		free(gctx->device->ctx);
 		free(gctx->device);
-		return -1;
+		return GASPI_ERROR;
 	}
 
 	// prelim defaults
@@ -272,15 +99,14 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	ni_req_limits.max_waw_ordered_size = LONG_MAX;
 	ni_req_limits.max_war_ordered_size = LONG_MAX;
 	ni_req_limits.max_volatile_size = LONG_MAX;
-	ni_req_limits.features = 0;
-	//ni_req_limits.features = PTL_TOTAL_DATA_ORDERING; // PTL_TOTAL_DATA_ORDERING ...
+	ni_req_limits.features = PTL_TARGET_BIND_INACCESSIBLE;
 
 	ret = PtlNIInit(iface,
 	                PTL_NI_NO_MATCHING | PTL_NI_PHYSICAL,
 	                PTL_PID_ANY,
 	                &ni_req_limits,
 	                &ni_limits,
-	                &portals4_dev_ctx->ni_handle);
+	                &portals4_dev_ctx->ni_h);
 
 	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR(
@@ -288,32 +114,32 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		    ret,
 		    iface);
 		pgaspi_dev_cleanup_core(gctx);
-		return -1;
+		return GASPI_ERROR;
 	}
 
 	if (ni_limits.max_atomic_size < sizeof(gaspi_atomic_value_t)) {
 		GASPI_DEBUG_PRINT_ERROR("Bad atomic size!");
-		return -1;
+		pgaspi_dev_cleanup_core(gctx);
+		return GASPI_ERROR;
 	}
 
 	if (ni_limits.max_fetch_atomic_size < sizeof(gaspi_atomic_value_t)) {
 		GASPI_DEBUG_PRINT_ERROR("Bad atomic fetch size!");
-		return -1;
+		pgaspi_dev_cleanup_core(gctx);
+		return GASPI_ERROR;
 	}
 
 	if (ni_limits.max_msg_size < gctx->config->transfer_size_max) {
 		GASPI_DEBUG_PRINT_ERROR("Bad msg size!");
-		return -1;
+		pgaspi_dev_cleanup_core(gctx);
+		return GASPI_ERROR;
 	}
 
-	portals4_dev_ctx->max_ptes = ni_limits.max_pt_index;
-	portals4_dev_ctx->pte_states =
-	    (int8_t*) calloc(ni_limits.max_pt_index, sizeof(int8_t));
-
-	if (portals4_dev_ctx->pte_states == NULL) {
-		GASPI_DEBUG_PRINT_ERROR("Failed to allocate memory!");
+	if (ni_limits.features & PTL_TARGET_BIND_INACCESSIBLE == 0) {
+		GASPI_DEBUG_PRINT_ERROR(
+		    "Interface does not support PTL_TARGET_BIND_INACCESSIBLE feature");
 		pgaspi_dev_cleanup_core(gctx);
-		return -1;
+		return GASPI_ERROR;
 	}
 
 	portals4_dev_ctx->local_info = (struct portals4_ctx_info*) calloc(
@@ -322,7 +148,7 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	if (portals4_dev_ctx->local_info == NULL) {
 		GASPI_DEBUG_PRINT_ERROR("Failed to allocate memory!");
 		pgaspi_dev_cleanup_core(gctx);
-		return -1;
+		return GASPI_ERROR;
 	}
 
 	portals4_dev_ctx->remote_info = (struct portals4_ctx_info*) calloc(
@@ -331,84 +157,117 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 	if (portals4_dev_ctx->remote_info == NULL) {
 		GASPI_DEBUG_PRINT_ERROR("Failed to allocate memory!");
 		pgaspi_dev_cleanup_core(gctx);
-		return -1;
+		return GASPI_ERROR;
 	}
 
-	ret = PtlGetPhysId(portals4_dev_ctx->ni_handle, &phys_address);
+	ret = PtlGetPhysId(portals4_dev_ctx->ni_h, &phys_address);
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("Failed to read physical address from NI!");
 		pgaspi_dev_cleanup_core(gctx);
-		return -1;
+		return GASPI_ERROR;
 	}
 
 	for (i = 0; i < gctx->tnc; ++i) {
 		portals4_dev_ctx->local_info[i].phys_address = phys_address;
 	}
 
-	ret = PtlEQAlloc(portals4_dev_ctx->ni_handle,
-	                 PORTALS4_EVENT_SLOTS,
-	                 &portals4_dev_ctx->eq_handle);
+	ret = PtlEQAlloc(
+	    portals4_dev_ctx->ni_h, PORTALS4_EVENT_SLOTS, &portals4_dev_ctx->eq_h);
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlEQAlloc failed with %d", ret);
 		pgaspi_dev_cleanup_core(gctx);
-		return -1;
+		return GASPI_ERROR;
 	}
 
-	ret = PtlEQAlloc(portals4_dev_ctx->ni_handle,
+	ret = PtlEQAlloc(portals4_dev_ctx->ni_h,
 	                 PORTALS4_EVENT_SLOTS,
-	                 &portals4_dev_ctx->passive_comm.eq_handle);
+	                 &portals4_dev_ctx->passive_comm_eq_h);
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlEQAlloc failed with %d", ret);
 		pgaspi_dev_cleanup_core(gctx);
-		return -1;
+		return GASPI_ERROR;
 	}
 
-	// We assume here that the first PT index is not used at this point
-	ret = PtlPTAlloc(portals4_dev_ctx->ni_handle,
+	ret = PtlPTAlloc(portals4_dev_ctx->ni_h,
 	                 0,
-	                 portals4_dev_ctx->passive_comm.eq_handle,
-	                 0,
-	                 &portals4_dev_ctx->passive_comm.pt_index);
+	                 portals4_dev_ctx->eq_h,
+	                 PORTALS4_DATA_PT_INDEX,
+	                 &portals4_dev_ctx->data_pt_idx);
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
 		pgaspi_dev_cleanup_core(gctx);
-		return -1;
+		return GASPI_ERROR;
 	}
-	portals4_dev_ctx->pte_states[0] = PT_ALLOCATED;
-	portals4_dev_ctx->passive_comm.msg_buf =
-	    malloc(gctx->config->passive_transfer_size_max);
 
-	if (portals4_dev_ctx->passive_comm.msg_buf == NULL) {
-		GASPI_DEBUG_PRINT_ERROR("Memory allocation failed!");
-		return -1;
+	ret = PtlPTAlloc(portals4_dev_ctx->ni_h,
+	                 0,
+	                 portals4_dev_ctx->passive_comm_eq_h,
+	                 PORTALS4_PASSIVE_PT_INDEX,
+	                 &portals4_dev_ctx->passive_comm_pt_idx);
+
+	if (ret != PTL_OK) {
+		GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
+		pgaspi_dev_cleanup_core(gctx);
+		return GASPI_ERROR;
 	}
+
+	ptl_le_t data_le = {
+	    .start = NULL,
+	    .length = PTL_SIZE_MAX,
+	    .uid = PTL_UID_ANY,
+	    .options = PTL_LE_OP_PUT | PTL_LE_OP_GET |
+	               PTL_LE_EVENT_SUCCESS_DISABLE | PTL_LE_EVENT_COMM_DISABLE,
+	    .ct_handle = PTL_CT_NONE,
+	};
+
+	ret = PtlLEAppend(portals4_dev_ctx->ni_h,
+	                  portals4_dev_ctx->data_pt_idx,
+	                  &data_le,
+	                  PTL_PRIORITY_LIST,
+	                  NULL,
+	                  &portals4_dev_ctx->data_le_h);
+	if (ret != PTL_OK) {
+		GASPI_DEBUG_PRINT_ERROR("PtlLEAppend failded with %d", ret);
+		return GASPI_ERROR;
+	}
+
+	void* ptr = malloc(gctx->config->passive_transfer_size_max);
+	if (ptr == NULL) {
+		return GASPI_ERR_MEMALLOC;
+	}
+
+	portals4_dev_ctx->passive_comm_msg_buf = ptr;
+	portals4_dev_ctx->passive_comm_msg_buf_addr = (ptl_size_t) ptr;
+	portals4_dev_ctx->passive_comm_msg_buf_size =
+	    gctx->config->passive_transfer_size_max;
+	ptr = NULL;
 
 	ptl_le_t passive_le = {
-	    .start = portals4_dev_ctx->passive_comm.msg_buf,
-	    .length = gctx->config->passive_transfer_size_max,
+	    .start = portals4_dev_ctx->passive_comm_msg_buf,
+	    .length = portals4_dev_ctx->passive_comm_msg_buf_size,
 	    .uid = PTL_UID_ANY,
 	    .options = PTL_LE_OP_PUT,
 	    .ct_handle = PTL_CT_NONE,
 	};
 
-	ret = PtlLEAppend(portals4_dev_ctx->ni_handle,
-	                  portals4_dev_ctx->passive_comm.pt_index,
+	ret = PtlLEAppend(portals4_dev_ctx->ni_h,
+	                  portals4_dev_ctx->passive_comm_pt_idx,
 	                  &passive_le,
 	                  PTL_PRIORITY_LIST,
 	                  NULL,
-	                  &portals4_dev_ctx->passive_comm.le_handle);
-	if (PTL_OK != ret) {
+	                  &portals4_dev_ctx->passive_comm_le_h);
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlLEAppend failded with %d", ret);
 		return GASPI_ERROR;
 	}
 
 	ptl_event_t event;
-	ret = PtlEQWait(portals4_dev_ctx->passive_comm.eq_handle, &event);
-	if (PTL_OK != ret) {
+	ret = PtlEQWait(portals4_dev_ctx->eq_h, &event);
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlEQWait failed with %d", ret);
 		return GASPI_ERROR;
 	}
@@ -421,146 +280,144 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		return GASPI_ERROR;
 	}
 
-	ret = PtlCTAlloc(portals4_dev_ctx->ni_handle,
-	                 &portals4_dev_ctx->passive_comm.ct_handle);
-
-	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlCTAlloc failed with %d", ret);
-		pgaspi_dev_cleanup_core(gctx);
-		return -1;
+	ret = PtlEQWait(portals4_dev_ctx->passive_comm_eq_h, &event);
+	if (ret != PTL_OK) {
+		GASPI_DEBUG_PRINT_ERROR("PtlEQWait failed with %d", ret);
+		return GASPI_ERROR;
+	}
+	if (event.type != PTL_EVENT_LINK) {
+		GASPI_DEBUG_PRINT_ERROR("Event type does not match");
+		return GASPI_ERROR;
+	}
+	if (event.ni_fail_type != PTL_NI_OK) {
+		GASPI_DEBUG_PRINT_ERROR("Linking of LE failed");
+		return GASPI_ERROR;
 	}
 
-	ret = PtlCTAlloc(portals4_dev_ctx->ni_handle,
-	                 &portals4_dev_ctx->group_ct_handle);
+	// Allocate CT Event queues
 
-	if (PTL_OK != ret) {
-		GASPI_DEBUG_PRINT_ERROR("PtlCTAlloc failed with %d", ret);
-		pgaspi_dev_cleanup_core(gctx);
-		return -1;
-	}
-
-	for (i = 0; i < GASPI_MAX_QP; ++i) {
-		ret = PtlCTAlloc(portals4_dev_ctx->ni_handle,
-		                 &portals4_dev_ctx->comm_ct_handle[i]);
-
-		if (PTL_OK != ret) {
-			GASPI_DEBUG_PRINT_ERROR("PtlPTAlloc failed with %d", ret);
+	for (int i = 0; i < gctx->num_queues; ++i) {
+		ret = PtlCTAlloc(portals4_dev_ctx->ni_h,
+		                 &portals4_dev_ctx->comm_notif_ct_h[i]);
+		if (ret != PTL_OK) {
+			GASPI_DEBUG_PRINT_ERROR("PtlCTAlloc failed with %d", ret);
 			pgaspi_dev_cleanup_core(gctx);
-			return -1;
+			return GASPI_ERROR;
 		}
 	}
-	return 0;
+
+	ret = PtlCTAlloc(portals4_dev_ctx->ni_h,
+	                 &portals4_dev_ctx->group_atomic_ct_h);
+
+	if (ret != PTL_OK) {
+		GASPI_DEBUG_PRINT_ERROR("PtlCTAlloc failed with %d", ret);
+		pgaspi_dev_cleanup_core(gctx);
+		return GASPI_ERROR;
+	}
+	ret = PtlCTAlloc(portals4_dev_ctx->ni_h,
+	                 &portals4_dev_ctx->passive_comm_ct_h);
+
+	if (ret != PTL_OK) {
+		GASPI_DEBUG_PRINT_ERROR("PtlCTAlloc failed with %d", ret);
+		pgaspi_dev_cleanup_core(gctx);
+		return GASPI_ERROR;
+	}
+
+	// Create MDs
+	unsigned long md_options = PTL_MD_EVENT_SUCCESS_DISABLE |
+	                           PTL_MD_EVENT_CT_REPLY | PTL_MD_EVENT_CT_ACK |
+	                           PTL_MD_VOLATILE;
+	ptl_md_t md = {
+	    .start = NULL,
+	    .length = PTL_SIZE_MAX,
+	    .options = md_options,
+	    .eq_handle = PTL_EQ_NONE,
+	};
+
+	for (int i = 0; i < gctx->num_queues; ++i) {
+		md.ct_handle = portals4_dev_ctx->comm_notif_ct_h[i];
+		ret = PtlMDBind(
+		    portals4_dev_ctx->ni_h, &md, &portals4_dev_ctx->comm_notif_md_h[i]);
+		if (ret != PTL_OK) {
+			GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
+			return GASPI_ERROR;
+		}
+	}
+
+	md.ct_handle = portals4_dev_ctx->group_atomic_ct_h;
+	ret = PtlMDBind(
+	    portals4_dev_ctx->ni_h, &md, &portals4_dev_ctx->group_atomic_md_h);
+	if (ret != PTL_OK) {
+		GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
+		return GASPI_ERROR;
+	}
+
+	md.ct_handle = portals4_dev_ctx->passive_comm_ct_h;
+	ret = PtlMDBind(
+	    portals4_dev_ctx->ni_h, &md, &portals4_dev_ctx->passive_comm_md_h);
+	if (ret != PTL_OK) {
+		GASPI_DEBUG_PRINT_ERROR("PtlMDBind failed with %d", ret);
+		return GASPI_ERROR;
+	}
+
+	return GASPI_SUCCESS;
 }
 
 int pgaspi_dev_comm_queue_delete(gaspi_context_t const* const gctx,
                                  const unsigned int id) {
 
-	gaspi_portals4_ctx* const portals4_dev_ctx =
-	    (gaspi_portals4_ctx*) gctx->device->ctx;
-	portals4_mr* mr = NULL;
+	gaspi_portals4_ctx* dev = (gaspi_portals4_ctx*) gctx->device->ctx;
 	int ret = PTL_OK;
-	for (int i = 0; i < gctx->config->segment_max; ++i) {
-		if (gctx->rrmd[i] != NULL) {
-			for (int u = 0; u < 2; ++u) {
-				mr = gctx->rrmd[i][gctx->rank].mr[u];
-				if (mr != NULL) {
-					if (!PtlHandleIsEqual(mr->comm_md[id],
-					                      PTL_INVALID_HANDLE)) {
-						ret = PtlMDRelease(mr->comm_md[id]);
-						if (ret != PTL_OK) {
-							return GASPI_ERROR;
-						}
-						mr->comm_md[id] = PTL_INVALID_HANDLE;
-					}
-				}
-			}
-		}
+	ret = PtlMDRelease(dev->comm_notif_md_h[id]);
+	if (ret != PTL_OK) {
+		return GASPI_ERROR;
 	}
+	dev->comm_notif_md_h[id] = PTL_INVALID_HANDLE;
 
-	mr = gctx->nsrc.mr[1];
-	if (!PtlHandleIsEqual(mr->notify_md[id], PTL_INVALID_HANDLE)) {
-		ret = PtlMDRelease(mr->notify_md[id]);
-		if (ret != PTL_OK) {
-			return GASPI_ERROR;
-		}
-		mr->notify_md[id] = PTL_INVALID_HANDLE;
+	ret = PtlCTFree(dev->comm_notif_ct_h[id]);
+	if (ret != PTL_OK) {
+		return GASPI_ERROR;
 	}
-	if (!PtlHandleIsEqual(portals4_dev_ctx->comm_ct_handle[id],
-	                      PTL_INVALID_HANDLE)) {
-		ret = PtlCTFree(portals4_dev_ctx->comm_ct_handle[id]);
-		if (ret != PTL_OK) {
-			return GASPI_ERROR;
-		}
-		portals4_dev_ctx->comm_ct_handle[id] = PTL_INVALID_HANDLE;
-	}
-	return 0;
+	dev->comm_notif_ct_h[id] = PTL_INVALID_HANDLE;
+	return GASPI_SUCCESS;
 }
 
 int pgaspi_dev_comm_queue_create(
-    gaspi_context_t const* const gctx,
+    const gaspi_context_t* const gctx,
     const unsigned int id,
     const unsigned short GASPI_UNUSED(remote_node)) {
-	gaspi_portals4_ctx* const portals4_dev_ctx =
-	    (gaspi_portals4_ctx*) gctx->device->ctx;
-	portals4_mr* mr = NULL;
+	gaspi_portals4_ctx* dev = (gaspi_portals4_ctx*) gctx->device->ctx;
 	int ret = PTL_OK;
-	ptl_md_t md;
 
-	if (PtlHandleIsEqual(portals4_dev_ctx->comm_ct_handle[id],
-	                     PTL_INVALID_HANDLE)) {
-		ret = PtlCTAlloc(portals4_dev_ctx->ni_handle,
-		                 &portals4_dev_ctx->comm_ct_handle[id]);
-		if (ret != PTL_OK) {
-			return GASPI_ERROR;
-		}
+	ret = PtlCTAlloc(dev->ni_h, &dev->comm_notif_ct_h[id]);
+	if (ret != PTL_OK) {
+		return GASPI_ERROR;
+	}
+	ptl_md_t md = {
+	    .start = NULL,
+	    .length = PTL_SIZE_MAX,
+	    .options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_REPLY |
+	               PTL_MD_EVENT_CT_ACK | PTL_MD_VOLATILE,
+	    .eq_handle = PTL_EQ_NONE,
+	    .ct_handle = dev->comm_notif_ct_h[id],
+	};
+
+	ret = PtlMDBind(dev->ni_h, &md, &dev->comm_notif_md_h[id]);
+	if (ret != PTL_OK) {
+		return GASPI_ERROR;
 	}
 
-	md.options = PTL_MD_EVENT_SUCCESS_DISABLE | PTL_MD_EVENT_CT_REPLY |
-	             PTL_MD_EVENT_CT_ACK | PTL_MD_VOLATILE;
-	md.eq_handle = PTL_EQ_NONE;
-	md.ct_handle = portals4_dev_ctx->comm_ct_handle[id];
-
-	for (int i = 0; i < gctx->config->segment_max; ++i) {
-		if (gctx->rrmd[i] != NULL) {
-			md.start = gctx->rrmd[i][gctx->rank].notif_spc.buf;
-			md.length =
-			    gctx->rrmd[i][gctx->rank].size + NOTIFICATIONS_SPACE_SIZE;
-			for (int u = 0; u < 2; ++u) {
-				mr = gctx->rrmd[i][gctx->rank].mr[u];
-				if (mr != NULL) {
-					ret = PtlMDBind(
-					    portals4_dev_ctx->ni_handle, &md, mr->comm_md[id]);
-					if (ret != PTL_OK) {
-						return GASPI_ERROR;
-					}
-				}
-			}
-		}
-	}
-
-	mr = gctx->nsrc.mr[1];
-	md.start = gctx->nsrc.notif_spc.buf;
-	md.length = gctx->nsrc.notif_spc_size;
-
-	if (PtlHandleIsEqual(mr->notify_md[id], PTL_INVALID_HANDLE)) {
-		ret = PtlMDBind(portals4_dev_ctx->ni_handle, &md, &mr->notify_md[id]);
-		if (ret != PTL_OK) {
-			return GASPI_ERROR;
-		}
-	}
-	return 0;
+	return GASPI_SUCCESS;
 }
 
 int pgaspi_dev_comm_queue_is_valid(gaspi_context_t const* const gctx,
                                    const unsigned int id) {
-	gaspi_portals4_ctx* const portals4_dev_ctx =
-	    (gaspi_portals4_ctx*) gctx->device->ctx;
+	gaspi_portals4_ctx* const dev = (gaspi_portals4_ctx*) gctx->device->ctx;
 
-	if (PtlHandleIsEqual(portals4_dev_ctx->comm_ct_handle[id],
-	                     PTL_INVALID_HANDLE)) {
+	if (PtlHandleIsEqual(dev->comm_notif_ct_h[id], PTL_INVALID_HANDLE)) {
 		return GASPI_ERR_INV_QUEUE;
 	}
-	return 0;
+	return GASPI_SUCCESS;
 }
 
 int pgaspi_dev_create_endpoint(gaspi_context_t const* const gctx,
@@ -573,46 +430,137 @@ int pgaspi_dev_create_endpoint(gaspi_context_t const* const gctx,
 	*info = &portals4_dev_ctx->local_info[i];
 	*remote_info = &portals4_dev_ctx->remote_info[i];
 	*info_size = sizeof(struct portals4_ctx_info);
-	return 0;
+	return GASPI_SUCCESS;
 }
 
 int pgaspi_dev_disconnect_context(gaspi_context_t* const GASPI_UNUSED(gctx),
                                   const int GASPI_UNUSED(i)) {
-	return 0;
+	return GASPI_SUCCESS;
 }
 
 int pgaspi_dev_comm_queue_connect(
     gaspi_context_t const* const GASPI_UNUSED(gctx),
     const unsigned short GASPI_UNUSED(q),
     const int GASPI_UNUSED(i)) {
-	return 0;
+	return GASPI_SUCCESS;
 }
 
 int pgaspi_dev_connect_context(gaspi_context_t const* const gctx,
                                const int GASPI_UNUSED(i)) {
-	return 0;
+	return GASPI_SUCCESS;
 }
 
 int pgaspi_dev_cleanup_core(gaspi_context_t* const gctx) {
 	int ret;
-	gaspi_portals4_ctx* const portals4_dev_ctx =
-	    (gaspi_portals4_ctx*) gctx->device->ctx;
+	gaspi_portals4_ctx* dev = (gaspi_portals4_ctx*) gctx->device->ctx;
 
-	ret = _pgaspi_dev_cleanup_core(portals4_dev_ctx, gctx->tnc);
-	if (!ret) {
-		return ret;
+	if (!PtlHandleIsEqual(dev->group_atomic_ct_h, PTL_INVALID_HANDLE)) {
+		ret = PtlCTFree(dev->group_atomic_ct_h);
+		if (ret != PTL_OK) {
+			GASPI_DEBUG_PRINT_ERROR("PtlCTFree failed with %d", ret);
+			return GASPI_ERROR;
+		}
 	}
-	if (portals4_dev_ctx->remote_info != NULL)
-		free(portals4_dev_ctx->remote_info);
-	if (portals4_dev_ctx->local_info != NULL)
-		free(portals4_dev_ctx->local_info);
-	if (portals4_dev_ctx->pte_states != NULL)
-		free(portals4_dev_ctx->pte_states);
-	if (gctx->device->ctx != NULL)
-		free(gctx->device->ctx);
-	if (gctx->device != NULL)
-		free(gctx->device);
-	PtlFini();
 
-	return 0;
+	for (int i = 0; i < GASPI_MAX_QP; ++i) {
+		if (!PtlHandleIsEqual(dev->comm_notif_ct_h[i], PTL_INVALID_HANDLE)) {
+			ret = PtlCTFree(dev->comm_notif_ct_h[i]);
+			if (ret != PTL_OK) {
+				GASPI_DEBUG_PRINT_ERROR("PtlCTFree failed with %d", ret);
+				return GASPI_ERROR;
+			}
+		}
+	}
+
+	if (!PtlHandleIsEqual(dev->data_le_h, PTL_INVALID_HANDLE)) {
+		ret = PtlLEUnlink(dev->data_le_h);
+		if (ret != PTL_OK) {
+			GASPI_DEBUG_PRINT_ERROR("PtlLEUnlink failed with %d", ret);
+			return GASPI_ERROR;
+		}
+	}
+
+	if (!PtlHandleIsEqual(dev->passive_comm_le_h, PTL_INVALID_HANDLE)) {
+		ret = PtlLEUnlink(dev->passive_comm_le_h);
+		if (ret != PTL_OK) {
+			GASPI_DEBUG_PRINT_ERROR("PtlLEUnlink failed with %d", ret);
+			return GASPI_ERROR;
+		}
+	}
+
+	if (!PtlHandleIsEqual(dev->passive_comm_ct_h, PTL_INVALID_HANDLE)) {
+		ret = PtlCTFree(dev->passive_comm_ct_h);
+		if (ret != PTL_OK) {
+			GASPI_DEBUG_PRINT_ERROR("PtlCTFree failed with %d", ret);
+			return GASPI_ERROR;
+		}
+	}
+
+	if (!PtlHandleIsEqual(dev->eq_h, PTL_INVALID_HANDLE)) {
+		ret = PtlEQFree(dev->eq_h);
+		if (ret != PTL_OK) {
+			GASPI_DEBUG_PRINT_ERROR("PtlEQFree failed with %d", ret);
+			return GASPI_ERROR;
+		}
+	}
+
+	if (!PtlHandleIsEqual(dev->passive_comm_eq_h, PTL_INVALID_HANDLE)) {
+		ret = PtlEQFree(dev->passive_comm_eq_h);
+		if (ret != PTL_OK) {
+			GASPI_DEBUG_PRINT_ERROR("PtlEQFree failed with %d", ret);
+			return GASPI_ERROR;
+		}
+	}
+
+	if (!dev->passive_comm_pt_idx != PTL_PT_ANY) {
+		ret = PtlPTFree(dev->ni_h, dev->passive_comm_pt_idx);
+		if (ret != PTL_OK) {
+			GASPI_DEBUG_PRINT_ERROR("PtlPTFree failed with %d", ret);
+			return GASPI_ERROR;
+		}
+	}
+
+	if (!dev->data_pt_idx != PTL_PT_ANY) {
+		ret = PtlPTFree(dev->ni_h, dev->data_pt_idx);
+		if (ret != PTL_OK) {
+			GASPI_DEBUG_PRINT_ERROR("PtlPTFree failed with %d", ret);
+			return GASPI_ERROR;
+		}
+	}
+
+	if (!PtlHandleIsEqual(dev->ni_h, PTL_INVALID_HANDLE)) {
+		ret = PtlNIFini(dev->ni_h);
+		if (ret != PTL_OK) {
+			GASPI_DEBUG_PRINT_ERROR("PtlNIFini failed with %d", ret);
+			return GASPI_ERROR;
+		}
+	}
+
+	if (dev->passive_comm_msg_buf != NULL) {
+		free(dev->passive_comm_msg_buf);
+		dev->passive_comm_msg_buf = NULL;
+	}
+
+	if (dev->remote_info != NULL) {
+		free(dev->remote_info);
+		dev->remote_info = NULL;
+	}
+
+	if (dev->local_info != NULL) {
+		free(dev->local_info);
+		dev->local_info = NULL;
+	}
+
+	if (gctx->device->ctx != NULL) {
+		free(gctx->device->ctx);
+		gctx->device->ctx = NULL;
+	}
+
+	if (gctx->device != NULL) {
+		free(gctx->device);
+		gctx->device = NULL;
+	}
+
+	PtlFini();
+	return GASPI_SUCCESS;
 }

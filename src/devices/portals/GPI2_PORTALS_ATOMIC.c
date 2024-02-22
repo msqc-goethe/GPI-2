@@ -27,44 +27,41 @@ gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
 	int ret;
 	int nnr;
 	ptl_ct_event_t ce;
-	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
-	portals4_mr* const local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[0];
-	const ptl_pt_index_t target_pt_index =
-	    ((portals4_mr*) (gctx->rrmd[segment_id][gctx->rank].mr[0]))->pt_index;
-
+	gaspi_portals4_ctx* const dev = gctx->device->ctx;
+	const ptl_size_t remote_offset =
+	    gctx->rrmd[segment_id][rank].data.addr + offset;
 	gaspi_atomic_value_t* val_arr = (gaspi_atomic_value_t*) gctx->nsrc.data.buf;
+
 	val_arr[1] = val_add;
 
-	ret = PtlFetchAtomic(local_mr_ptr->atomic_md,
-	                     0,
-	                     local_mr_ptr->atomic_md,
+	ret = PtlFetchAtomic(dev->group_atomic_md_h,
+	                     gctx->nsrc.data.addr,
+	                     dev->group_atomic_md_h,
+	                     gctx->nsrc.data.addr + sizeof(gaspi_atomic_value_t),
 	                     sizeof(gaspi_atomic_value_t),
-	                     sizeof(gaspi_atomic_value_t),
-	                     portals4_dev_ctx->remote_info[rank].phys_address,
-	                     target_pt_index,
+	                     dev->remote_info[rank].phys_address,
+	                     dev->data_pt_idx,
 	                     0,
-	                     DATA_SEG(offset),
+	                     remote_offset,
 	                     NULL,
 	                     0,
 	                     PTL_SUM,
 	                     PTL_UINT64_T);
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlFetchAtomic failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
 	ret = PtlAtomicSync();
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlAtomicSync failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
-	ret = PtlCTWait(portals4_dev_ctx->group_ct_handle,
-	                portals4_dev_ctx->group_ct_cnt + 1,
-	                &ce);
+	ret = PtlCTWait(dev->group_atomic_ct_h, dev->group_atomic_ct_cnt + 1, &ce);
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlCTWait failed with %d", ret);
 		return GASPI_ERROR;
 	}
@@ -73,7 +70,7 @@ gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
 		GASPI_DEBUG_PRINT_ERROR("atomic channel might be broken");
 		return GASPI_ERROR;
 	}
-	portals4_dev_ctx->group_ct_cnt = ce.success;
+	dev->group_atomic_ct_cnt = ce.success;
 
 	return GASPI_SUCCESS;
 }
@@ -87,45 +84,42 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
     const gaspi_atomic_value_t val_new) {
 	int ret;
 	ptl_ct_event_t ce;
-	gaspi_portals4_ctx* const portals4_dev_ctx = gctx->device->ctx;
-	portals4_mr* const local_mr_ptr = (portals4_mr*) gctx->nsrc.mr[0];
-	const ptl_pt_index_t target_pt_index =
-	    ((portals4_mr*) (gctx->rrmd[segment_id][gctx->rank].mr[0]))->pt_index;
+	gaspi_portals4_ctx* const dev = gctx->device->ctx;
+	const ptl_size_t remote_offset =
+	    gctx->rrmd[segment_id][rank].data.addr + offset;
 
 	gaspi_atomic_value_t* val_arr = (gaspi_atomic_value_t*) gctx->nsrc.data.buf;
 	val_arr[1] = val_new;
 
-	ret = PtlSwap(local_mr_ptr->atomic_md,
-	              0,
-	              local_mr_ptr->atomic_md,
+	ret = PtlSwap(dev->group_atomic_md_h,
+	              gctx->nsrc.data.addr,
+	              dev->group_atomic_md_h,
+	              gctx->nsrc.data.addr + sizeof(gaspi_atomic_value_t),
 	              sizeof(gaspi_atomic_value_t),
-	              sizeof(gaspi_atomic_value_t),
-	              portals4_dev_ctx->remote_info[rank].phys_address,
-	              target_pt_index,
+	              dev->remote_info[rank].phys_address,
+	              dev->data_pt_idx,
 	              0,
-	              DATA_SEG(offset),
+	              remote_offset,
 	              NULL,
 	              0,
 	              &comparator,
 	              PTL_CSWAP,
 	              PTL_UINT64_T);
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlFetchAtomic failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
 	ret = PtlAtomicSync();
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlAtomicSync failed with %d", ret);
 		return GASPI_ERROR;
 	}
 
-	ret = PtlCTWait(portals4_dev_ctx->group_ct_handle,
-	                portals4_dev_ctx->group_ct_cnt + 1,
-	                &ce);
+	ret = PtlCTWait(dev->group_atomic_ct_h, dev->group_atomic_ct_cnt + 1, &ce);
 
-	if (PTL_OK != ret) {
+	if (ret != PTL_OK) {
 		GASPI_DEBUG_PRINT_ERROR("PtlCTWait failed with %d", ret);
 		return GASPI_ERROR;
 	}
@@ -134,7 +128,7 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
 		GASPI_DEBUG_PRINT_ERROR("atomic queue might be broken");
 		return GASPI_ERROR;
 	}
-	portals4_dev_ctx->group_ct_cnt = ce.success;
+	dev->group_atomic_ct_cnt = ce.success;
 
 	return GASPI_SUCCESS;
 }

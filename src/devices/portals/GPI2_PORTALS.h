@@ -22,47 +22,56 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 #include <portals4.h>
 #include "GPI2_Dev.h"
 
+#define PORTALS4_DATA_PT_INDEX 0
+#define PORTALS4_PASSIVE_PT_INDEX 1
+
 #define PORTALS4_EVENT_SLOTS (1024)
 #define PORTALS4_ACK_TYPE PTL_CT_ACK_REQ
 #define PORTALS4_PASSIVE_ACK_TYPE PTL_ACK_REQ
-
-#define DATA_SEG(offset)(NOTIFICATIONS_SPACE_SIZE + offset)
-
-enum pt_states { PT_FREE = 0, PT_ALLOCATED = 1 };
-
-typedef struct {
-	ptl_handle_md_t group_md;
-	ptl_handle_md_t passive_md;
-	ptl_handle_md_t atomic_md;
-	ptl_handle_md_t notify_md[GASPI_MAX_QP];
-	ptl_handle_md_t comm_md[GASPI_MAX_QP];
-	ptl_handle_le_t le_handle;
-	ptl_pt_index_t pt_index;
-} portals4_mr;
 
 struct portals4_ctx_info {
 	ptl_process_t phys_address;
 };
 
 typedef struct {
-	ptl_handle_ni_t ni_handle;
-	ptl_handle_eq_t eq_handle;
-	ptl_handle_ct_t group_ct_handle;
-	ptl_handle_ct_t comm_ct_handle[GASPI_MAX_QP];
-	ptl_size_t group_ct_cnt;
-	ptl_size_t comm_ct_cnt[GASPI_MAX_QP];
-	struct {
-		ptl_handle_eq_t eq_handle;
-		ptl_handle_ct_t ct_handle;
-		ptl_handle_le_t le_handle;
-		ptl_pt_index_t pt_index;
-		ptl_size_t ct_cnt;
-		unsigned char* msg_buf;
-	} passive_comm;
+	//Interface
+	ptl_handle_ni_t ni_h;
+
+	//Passive Comm Internal Memory
+	void* passive_comm_msg_buf;
+	ptl_size_t passive_comm_msg_buf_addr;
+	ptl_size_t passive_comm_msg_buf_size;
+
+	//Memory Descriptors
+	ptl_handle_md_t group_atomic_md_h;
+	ptl_handle_md_t passive_comm_md_h;
+	ptl_handle_md_t comm_notif_md_h[GASPI_MAX_QP];
+
+	//Data Space Portal
+	ptl_handle_le_t data_le_h;
+	ptl_pt_index_t data_pt_idx;
+
+	//Passive Comm Portal
+	ptl_handle_le_t passive_comm_le_h;
+	ptl_pt_index_t passive_comm_pt_idx;
+
+	//Counting Event Queues
+	ptl_handle_ct_t group_atomic_ct_h;
+	ptl_handle_ct_t passive_comm_ct_h;
+	ptl_handle_ct_t comm_notif_ct_h[GASPI_MAX_QP];
+
+	//Event Queues
+	ptl_handle_eq_t eq_h;
+	ptl_handle_eq_t passive_comm_eq_h;
+
+	//CT Event Counter
+	ptl_size_t group_atomic_ct_cnt;
+	ptl_size_t passive_comm_ct_cnt;
+	ptl_size_t comm_notif_ct_cnt[GASPI_MAX_QP];
+
+	//Exchange
 	struct portals4_ctx_info* local_info;
 	struct portals4_ctx_info* remote_info;
-	int8_t* pte_states;
-	int max_ptes;
 } gaspi_portals4_ctx;
 
 #endif // _GPI2_BXI_H_
