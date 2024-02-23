@@ -69,10 +69,6 @@ typedef struct {
 	unsigned int rkey[2];
 #endif
 
-#ifdef GPI2_DEVICE_PORTALS
-	memory_kind_t mem_kind;
-#endif
-
 	unsigned long size;
 	size_t notif_spc_size;
 	int trans; /* info transmitted */
