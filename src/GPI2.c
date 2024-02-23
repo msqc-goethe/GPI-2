@@ -143,13 +143,8 @@ static gaspi_return_t pgaspi_init_core(gaspi_context_t* const gctx) {
 	}
 
 	/* Create internal memory space (notifications + atomic value placeholder) */
-#ifdef GPI2_DEVICE_PORTALS
-	const unsigned int size =
-	    NOTIFICATIONS_SPACE_SIZE + 2 * sizeof(gaspi_atomic_value_t);
-#else
 	const unsigned int size =
 	    NOTIFICATIONS_SPACE_SIZE + sizeof(gaspi_atomic_value_t);
-#endif
 
 	if (pgaspi_alloc_page_aligned(&gctx->nsrc.data.ptr, size) != 0) {
 		GASPI_DEBUG_PRINT_ERROR("Memory allocation failed.");
@@ -157,11 +152,7 @@ static gaspi_return_t pgaspi_init_core(gaspi_context_t* const gctx) {
 	}
 
 	memset(gctx->nsrc.data.buf, 0, size);
-#ifdef GPI2_DEVICE_PORTALS
-	gctx->nsrc.size = 2 * sizeof(gaspi_atomic_value_t);
-#else
 	gctx->nsrc.size = sizeof(gaspi_atomic_value_t);
-#endif
 	gctx->nsrc.notif_spc.addr = gctx->nsrc.data.addr;
 	gctx->nsrc.notif_spc_size = NOTIFICATIONS_SPACE_SIZE;
 	gctx->nsrc.data.addr += NOTIFICATIONS_SPACE_SIZE;

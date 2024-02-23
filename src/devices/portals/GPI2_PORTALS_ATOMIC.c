@@ -30,14 +30,11 @@ gaspi_return_t pgaspi_dev_atomic_fetch_add(gaspi_context_t* const gctx,
 	gaspi_portals4_ctx* const dev = gctx->device->ctx;
 	const ptl_size_t remote_offset =
 	    gctx->rrmd[segment_id][rank].data.addr + offset;
-	gaspi_atomic_value_t* val_arr = (gaspi_atomic_value_t*) gctx->nsrc.data.buf;
-
-	val_arr[1] = val_add;
 
 	ret = PtlFetchAtomic(dev->group_atomic_md_h,
 	                     gctx->nsrc.data.addr,
 	                     dev->group_atomic_md_h,
-	                     gctx->nsrc.data.addr + sizeof(gaspi_atomic_value_t),
+			     (ptl_size_t)&val_add,
 	                     sizeof(gaspi_atomic_value_t),
 	                     dev->remote_info[rank].phys_address,
 	                     dev->data_pt_idx,
@@ -88,13 +85,10 @@ gaspi_return_t pgaspi_dev_atomic_compare_swap(
 	const ptl_size_t remote_offset =
 	    gctx->rrmd[segment_id][rank].data.addr + offset;
 
-	gaspi_atomic_value_t* val_arr = (gaspi_atomic_value_t*) gctx->nsrc.data.buf;
-	val_arr[1] = val_new;
-
 	ret = PtlSwap(dev->group_atomic_md_h,
 	              gctx->nsrc.data.addr,
 	              dev->group_atomic_md_h,
-	              gctx->nsrc.data.addr + sizeof(gaspi_atomic_value_t),
+		      (ptl_size_t)&val_new,
 	              sizeof(gaspi_atomic_value_t),
 	              dev->remote_info[rank].phys_address,
 	              dev->data_pt_idx,
