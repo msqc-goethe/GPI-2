@@ -17,7 +17,7 @@ find_package_handle_standard_args(
 
 if(IBVerbs_FOUND)
 	if(NOT TARGET IBVerbs::IBVerbs)
-		add_library(IBVerbs::IBVerbs)
+		add_library(IBVerbs::IBVerbs UNKNOWN IMPORTED GLOBAL)
 		set_target_properties(IBVerbs::IBVerbs PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${IB_INCLUDE_DIR} IMPORTED_LOCATION ${IB_LIBRARY})
 	endif()
 endif()
