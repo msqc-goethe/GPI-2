@@ -235,9 +235,21 @@ int pgaspi_dev_init_core(gaspi_context_t* const gctx) {
 		return GASPI_ERROR;
 	}
 
+	long page_size = sysconf(_SC_PAGESIZE);
+
+	if (page_size == -1) {
+		return GASPI_ERROR;
+	}
+
 	void* ptr = malloc(gctx->config->passive_transfer_size_max);
 	if (ptr == NULL) {
 		return GASPI_ERR_MEMALLOC;
+	}
+
+	ret = posix_memalign(
+	    (void**) ptr, page_size, gctx->config->passive_transfer_size_max);
+	if (ret != 0) {
+		return GASPI_ERROR;
 	}
 
 	portals4_dev_ctx->passive_comm_msg_buf = ptr;
