@@ -27,7 +27,7 @@ along with GPI-2. If not, see <http://www.gnu.org/licenses/>.
 
 #define PORTALS4_EVENT_SLOTS (1024)
 #define PORTALS4_ACK_TYPE PTL_CT_ACK_REQ
-#define PORTALS4_PASSIVE_ACK_TYPE PTL_ACK_REQ
+#define PORTALS4_PASSIVE_ACK_TYPE PTL_CT_ACK_REQ
 
 struct portals4_ctx_info {
 	ptl_process_t phys_address;
