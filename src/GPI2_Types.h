@@ -48,8 +48,6 @@ typedef struct {
 	char dummy[63];
 } gaspi_lock_t;
 
-typedef enum { NSRC_MEM = 1, GRP_MEM, DATA_MEM } memory_kind_t;
-
 typedef struct {
 	union {
 		unsigned char* buf;
